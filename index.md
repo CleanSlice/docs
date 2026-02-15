@@ -5,6 +5,9 @@ hero:
   name: CleanSlice
   text: Build Full-Stack Apps with Clean Architecture
   tagline: A slice-based framework for NestJS + Nuxt applications. Compose features as independent, self-contained vertical slices.
+  image:
+    src: /cleanslice-architecture.png
+    alt: CleanSlice Logo
   actions:
     - theme: brand
       text: Get Started

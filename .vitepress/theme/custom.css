@@ -1,0 +1,11 @@
+.VPHero .VPImage {
+  max-width: 420px;
+  max-height: 420px;
+}
+
+@media (min-width: 960px) {
+  .VPHero .VPImage {
+    max-width: 500px;
+    max-height: 500px;
+  }
+}
