@@ -4,11 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "start": "vitepress preview --port ${PORT:-4173}",
+    "preview": "vitepress preview"
   },
-  "devDependencies": {
+  "dependencies": {
     "vitepress": "^1.6.4"
   }
 }
