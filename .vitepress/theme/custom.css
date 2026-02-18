@@ -1,6 +1,117 @@
+/**
+ * CleanSlice Theme — Teal/Cyan Architecture Palette
+ * Overrides VitePress default indigo brand with our design system colors.
+ */
+
+/* ---- Light mode ---- */
+:root {
+  /* Brand / Primary: Presentation layer teal */
+  --vp-c-brand-1: #3A8FA0;
+  --vp-c-brand-2: #4FA3D1;
+  --vp-c-brand-3: #4A95B0;
+  --vp-c-brand-soft: rgba(79, 163, 209, 0.14);
+
+  /* Backgrounds */
+  --vp-c-bg: #E9EFF4;
+  --vp-c-bg-alt: #F2F6FA;
+  --vp-c-bg-elv: #ffffff;
+  --vp-c-bg-soft: #DDE6ED;
+
+  /* Borders */
+  --vp-c-border: #C8D5DF;
+  --vp-c-divider: #C8D5DF;
+  --vp-c-gutter: #DDE6ED;
+
+  /* Text */
+  --vp-c-text-1: #3C4A57;
+  --vp-c-text-2: #6E8796;
+  --vp-c-text-3: #9CB2BF;
+
+  /* Hero gradient */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #4FA3D1, #5CC6D6);
+  --vp-home-hero-image-background-image: linear-gradient(135deg, rgba(79, 163, 209, 0.2), rgba(92, 198, 214, 0.2));
+  --vp-home-hero-image-filter: blur(44px);
+
+  /* Buttons */
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: #ffffff;
+  --vp-button-brand-bg: #4A95B0;
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: #ffffff;
+  --vp-button-brand-hover-bg: #4FA3D1;
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: #ffffff;
+  --vp-button-brand-active-bg: #3A8FA0;
+
+  --vp-button-alt-border: #C8D5DF;
+  --vp-button-alt-text: #3C4A57;
+  --vp-button-alt-bg: #F2F6FA;
+  --vp-button-alt-hover-border: #4FA3D1;
+  --vp-button-alt-hover-text: #3C4A57;
+  --vp-button-alt-hover-bg: #EAF2F9;
+}
+
+/* ---- Dark mode ---- */
+.dark {
+  /* Brand / Primary: Presentation glow */
+  --vp-c-brand-1: #5CC6D6;
+  --vp-c-brand-2: #4FA3D1;
+  --vp-c-brand-3: #3FA6B8;
+  --vp-c-brand-soft: rgba(92, 198, 214, 0.16);
+
+  /* Backgrounds */
+  --vp-c-bg: #0F1C24;
+  --vp-c-bg-alt: #132531;
+  --vp-c-bg-elv: #1A2B36;
+  --vp-c-bg-soft: #1A2B36;
+
+  /* Borders */
+  --vp-c-border: #27414F;
+  --vp-c-divider: #27414F;
+  --vp-c-gutter: #1E3442;
+
+  /* Text */
+  --vp-c-text-1: #D9E4EC;
+  --vp-c-text-2: #9CB2BF;
+  --vp-c-text-3: #6E8796;
+
+  /* Hero gradient */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #5CC6D6, #6ED8E8);
+  --vp-home-hero-image-background-image: linear-gradient(135deg, rgba(92, 198, 214, 0.15), rgba(63, 166, 184, 0.15));
+  --vp-home-hero-image-filter: blur(44px);
+
+  /* Buttons */
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: #0F1C24;
+  --vp-button-brand-bg: #3FA6B8;
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: #0F1C24;
+  --vp-button-brand-hover-bg: #4FA3D1;
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: #0F1C24;
+  --vp-button-brand-active-bg: #5CC6D6;
+
+  --vp-button-alt-border: #27414F;
+  --vp-button-alt-text: #D9E4EC;
+  --vp-button-alt-bg: #1E3442;
+  --vp-button-alt-hover-border: #3FA6B8;
+  --vp-button-alt-hover-text: #D9E4EC;
+  --vp-button-alt-hover-bg: #1A2B36;
+}
+
+/* ---- Hero image sizing ---- */
 .VPHero .VPImage {
-  max-width: 420px;
-  max-height: 420px;
+  max-width: 240px;
+  max-height: 240px;
+}
+
+@media (min-width: 640px) {
+  .VPHero .VPImage {
+    max-width: 360px;
+    max-height: 360px;
+  }
 }
 
 @media (min-width: 960px) {

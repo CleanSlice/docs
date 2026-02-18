@@ -1,0 +1,9 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "CleanSlice Architecture",
+  "folders": [
+    "docs"
+  ],
+  "excludeFiles": [],
+  "excludeFolders": []
+}

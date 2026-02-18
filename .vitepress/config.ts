@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
+  srcDir: 'docs',
   title: 'CleanSlice',
   description: 'Build scalable full-stack applications with Clean Architecture and vertical slices',
 
