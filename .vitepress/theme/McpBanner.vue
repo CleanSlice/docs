@@ -29,7 +29,7 @@ const tools = [
           <a href="https://mcp.cleanslice.org/" target="_blank" class="mcp-btn primary">
             Learn More
           </a>
-          <code class="mcp-install">claude mcp add cleanslice https://mcp.cleanslice.org/mcp</code>
+          <code class="mcp-install">claude mcp add --scope user --transport http cleanslice https://mcp.cleanslice.org/mcp</code>
         </div>
       </div>
     </div>
