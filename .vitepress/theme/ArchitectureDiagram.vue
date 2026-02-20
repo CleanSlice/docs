@@ -333,7 +333,7 @@ onUnmounted(() => {
 /* Labels */
 .arch-label {
   position: absolute;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 300;
   opacity: 0.75;
   pointer-events: none;
@@ -345,7 +345,7 @@ onUnmounted(() => {
 
 .arch-label strong {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 3px;
   color: var(--arch-title-color);
@@ -354,15 +354,15 @@ onUnmounted(() => {
 }
 
 .arch-view-title { top: 32px; left: 125px; }
-.arch-view-controllers { top: 100px; left: 40px; transform: rotate(-50deg); }
-.arch-view-components { top: 200px; left: 0; transform: rotate(-90deg); }
-.arch-view-html { bottom: 75px; left: 40px; transform: rotate(45deg); }
+.arch-view-controllers { top: 90px; left: 40px; transform: rotate(-50deg); }
+.arch-view-components { top: 200px; left: -10px; transform: rotate(-90deg); }
+.arch-view-html { bottom: 75px; left: 35px; transform: rotate(45deg); }
 .arch-view-dtos { top: 130px; left: 16px; transform: rotate(-90deg); }
 
 .arch-data-title { top: 32px; right: 125px; }
 .arch-data-repositories { top: 115px; right: 25px; transform: rotate(60deg); }
 .arch-data-mappers { bottom: 100px; right: 40px; transform: rotate(-50deg); }
-.arch-data-gateways { top: 130px; right: 0; transform: rotate(90deg); }
+.arch-data-gateways { top: 135px; right: 0; transform: rotate(90deg); }
 
 /* Domain core */
 .arch-domain-content {
@@ -375,7 +375,7 @@ onUnmounted(() => {
 }
 
 .arch-domain-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 3px;
@@ -390,7 +390,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 300;
   letter-spacing: 0.5px;
   color: var(--arch-domain-items-color);
