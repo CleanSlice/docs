@@ -38,10 +38,21 @@ onMounted(() => {
   const downDuration = 150
   let index = 0
   let adding = true
+  let isPaused = false
 
   function step() {
     if (adding) {
-      sequence[index]?.classList.add('glow')
+      const element = sequence[index]
+      if (element) {
+        element.classList.add('glow')
+        // Trigger halo on stacks and layer-1 (outermost layer)
+        if (element.classList.contains('arch-stack') || element.classList.contains('arch-layer-1')) {
+          const halo = document.createElement('div')
+          halo.className = 'arch-halo'
+          element.appendChild(halo)
+          halo.addEventListener('animationend', () => halo.remove())
+        }
+      }
       index++
       if (index >= sequence.length) {
         adding = false
@@ -55,10 +66,23 @@ onMounted(() => {
         index = 0
       }
     }
-    timer = setTimeout(step, adding ? upDuration : downDuration)
+    if (!isPaused) {
+      timer = setTimeout(step, adding ? upDuration : downDuration)
+    }
   }
 
   step()
+
+  // Pause animation on hover
+  container.value.addEventListener('mouseenter', () => {
+    isPaused = true
+    if (timer) clearTimeout(timer)
+  })
+
+  container.value.addEventListener('mouseleave', () => {
+    isPaused = false
+    timer = setTimeout(step, adding ? upDuration : downDuration)
+  })
 
   container.value.querySelectorAll('.arch-stack, .arch-layer').forEach(el => {
     el.style.cursor = 'pointer'
