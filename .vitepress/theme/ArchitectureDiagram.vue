@@ -405,8 +405,8 @@ onUnmounted(() => {
   transition: background 0.5s ease;
 }
 
-/* Click halo */
-.arch-halo {
+/* Click halo (dynamically created, needs :deep to bypass scoped) */
+:deep(.arch-halo) {
   position: absolute;
   border-radius: 50%;
   border: 2px solid var(--arch-halo-border);
