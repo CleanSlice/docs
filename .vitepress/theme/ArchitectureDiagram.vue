@@ -5,6 +5,7 @@ const container = ref(null)
 const onion = ref(null)
 let timer = null
 let resizeObserver = null
+let visibilityHandler = null
 
 const DESIGN_WIDTH = 580
 
@@ -39,6 +40,7 @@ onMounted(() => {
   let index = 0
   let adding = true
   let isPaused = false
+  let isHovering = false
 
   function step() {
     if (adding) {
@@ -75,14 +77,34 @@ onMounted(() => {
 
   // Pause animation on hover
   container.value.addEventListener('mouseenter', () => {
+    isHovering = true
     isPaused = true
     if (timer) clearTimeout(timer)
   })
 
   container.value.addEventListener('mouseleave', () => {
-    isPaused = false
-    timer = setTimeout(step, adding ? upDuration : downDuration)
+    isHovering = false
+    // Only resume if the page is visible
+    if (!document.hidden) {
+      isPaused = false
+      timer = setTimeout(step, adding ? upDuration : downDuration)
+    }
   })
+
+  // Pause animation when window/tab becomes inactive
+  visibilityHandler = () => {
+    if (document.hidden) {
+      isPaused = true
+      if (timer) clearTimeout(timer)
+    } else {
+      // Only resume if not hovering
+      if (!isHovering) {
+        isPaused = false
+        timer = setTimeout(step, adding ? upDuration : downDuration)
+      }
+    }
+  }
+  document.addEventListener('visibilitychange', visibilityHandler)
 
   container.value.querySelectorAll('.arch-stack, .arch-layer').forEach(el => {
     el.style.cursor = 'pointer'
@@ -99,6 +121,9 @@ onMounted(() => {
 onUnmounted(() => {
   if (timer) clearTimeout(timer)
   if (resizeObserver) resizeObserver.disconnect()
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler)
+  }
 })
 </script>
 
