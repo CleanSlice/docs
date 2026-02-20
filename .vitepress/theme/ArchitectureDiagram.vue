@@ -6,8 +6,7 @@ const onion = ref(null)
 let timer = null
 let resizeObserver = null
 
-const DESIGN_WIDTH = 620
-const BASE_STACK_RIGHT = -30
+const DESIGN_WIDTH = 580
 
 function updateScale() {
   if (!container.value || !onion.value) return
@@ -16,11 +15,6 @@ function updateScale() {
   onion.value.style.transform = `scale(${scale})`
   container.value.style.height = `${500 * scale}px`
 
-  // Compensate stack position so visual gap stays constant across scales
-  const stackBg = onion.value.querySelector('.arch-stack-bg')
-  if (stackBg) {
-    stackBg.style.right = `${BASE_STACK_RIGHT / scale}px`
-  }
 }
 
 onMounted(() => {
@@ -86,37 +80,38 @@ onUnmounted(() => {
 
 <template>
   <div ref="container" class="arch-wrapper">
-    <div ref="onion" class="arch-onion">
-      <div class="arch-layer arch-layer-1">
-        <span class="arch-label arch-view-title"><strong>View</strong></span>
-        <span class="arch-label arch-view-controllers">Controllers</span>
-        <span class="arch-label arch-view-components">UI Components</span>
-        <span class="arch-label arch-view-html">Html / React / Vue</span>
 
-        <span class="arch-divider"></span>
-        <span class="arch-label arch-data-title"><strong>Data</strong></span>
-        <span class="arch-label arch-data-repositories">Repositories</span>
-        <span class="arch-label arch-data-mappers">Mappers</span>
 
-        <div class="arch-layer arch-layer-2">
-          <span class="arch-label arch-view-dtos">Dtos</span>
+    <div class="arch-stack-bg">
+      <div ref="onion" class="arch-onion">
+        <div class="arch-layer arch-layer-1">
+          <span class="arch-label arch-view-title"><strong>View</strong></span>
+          <span class="arch-label arch-view-controllers">Controllers</span>
+          <span class="arch-label arch-view-components">UI Components</span>
+          <span class="arch-label arch-view-html">Html / React / Vue</span>
+
           <span class="arch-divider"></span>
-          <span class="arch-label arch-data-gateways">Gateways</span>
+          <span class="arch-label arch-data-title"><strong>Data</strong></span>
+          <span class="arch-label arch-data-repositories">Repositories</span>
+          <span class="arch-label arch-data-mappers">Mappers</span>
 
-          <div class="arch-layer arch-layer-3">
-            <div class="arch-domain-content">
-              <div class="arch-domain-title">Domain</div>
-              <div class="arch-domain-items">
-                <span>Types</span>
-                <span>Interfaces</span>
-                <span>Services</span>
+          <div class="arch-layer arch-layer-2">
+            <span class="arch-label arch-view-dtos">Dtos</span>
+            <span class="arch-divider"></span>
+            <span class="arch-label arch-data-gateways">Gateways</span>
+
+            <div class="arch-layer arch-layer-3">
+              <div class="arch-domain-content">
+                <div class="arch-domain-title">Domain</div>
+                <div class="arch-domain-items">
+                  <span>Types</span>
+                  <span>Interfaces</span>
+                  <span>Services</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="arch-stack-bg">
         <div class="arch-stack arch-stack-4"><span>Setup</span></div>
         <div class="arch-stack arch-stack-3"><span>API</span></div>
         <div class="arch-stack arch-stack-2"><span>Auth</span></div>
@@ -357,7 +352,6 @@ onUnmounted(() => {
 /* Stacks */
 .arch-stack-bg {
   position: absolute;
-  right: 0px;
   z-index: 1;
 }
 
@@ -368,7 +362,6 @@ onUnmounted(() => {
   border-radius: 50%;
   border: 1px solid var(--arch-stack-border);
   background: var(--arch-stack-bg-1);
-  top: -200px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -387,10 +380,10 @@ onUnmounted(() => {
   transition: color 0.4s ease, text-shadow 0.4s ease;
 }
 
-.arch-stack-1 { right: 20px; scale: 1; }
-.arch-stack-2 { right: -50px; background: var(--arch-stack-bg-2); scale: 0.9; }
-.arch-stack-3 { right: -115px; background: var(--arch-stack-bg-3); scale: 0.8; }
-.arch-stack-4 { right: -180px; background: var(--arch-stack-bg-4); scale: 0.7; }
+.arch-stack-1 { right: -20px; scale: 1; }
+.arch-stack-2 { right: -90px; background: var(--arch-stack-bg-2); scale: 0.9; }
+.arch-stack-3 { right: -150px; background: var(--arch-stack-bg-3); scale: 0.8; }
+.arch-stack-4 { right: -210px; background: var(--arch-stack-bg-4); scale: 0.7; }
 
 /* Divider */
 .arch-divider {
