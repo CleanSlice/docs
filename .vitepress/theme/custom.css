@@ -101,22 +101,27 @@
   --vp-button-alt-hover-bg: #1A2B36;
 }
 
-/* ---- Hero image sizing ---- */
-.VPHero .VPImage {
-  max-width: 240px;
-  max-height: 240px;
+/* ---- Hero architecture diagram ---- */
+.VPHero .image-container {
+  overflow: visible !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@media (min-width: 640px) {
-  .VPHero .VPImage {
-    max-width: 360px;
-    max-height: 360px;
-  }
+.VPHero .image-bg {
+  display: none;
 }
 
 @media (min-width: 960px) {
-  .VPHero .VPImage {
-    max-width: 500px;
-    max-height: 500px;
+  .VPHero .image-container {
+    min-width: 500px;
+  }
+}
+
+@media (max-width: 959px) {
+  .VPHero .image-container {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
   }
 }

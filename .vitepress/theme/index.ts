@@ -1,6 +1,7 @@
 import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
 import McpBanner from './McpBanner.vue'
+import ArchitectureDiagram from './ArchitectureDiagram.vue'
 import './custom.css'
 
 const GtmNoscript = {
@@ -19,6 +20,7 @@ export default {
   Layout() {
     return h(DefaultTheme.Layout, null, {
       'layout-top': () => h(GtmNoscript),
+      'home-hero-image': () => h(ArchitectureDiagram),
       'home-features-before': () => h(McpBanner),
     })
   },
