@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: CleanSlice
-  text: Build AI-Ready Full-Stack Apps with Clean Architecture
+  text: Build AI-First Full-Stack Apps with Clean Architecture
   tagline: A slice-based architecture for NestJS + Nuxt applications. Compose features as independent, self-contained vertical slices — without AI drift.
   actions:
     - theme: brand

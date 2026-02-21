@@ -6,12 +6,16 @@ CleanSlice is an architecture framework for building full-stack applications wit
 
 Most full-stack projects start simple but quickly become tangled. Business logic leaks into controllers. Database queries appear in UI components. Adding a new feature means touching files scattered across dozens of folders.
 
+This problem gets dramatically worse when AI agents enter the picture. Without structural guardrails, AI-generated code drifts — business logic lands wherever fits, layers collapse, and the codebase degrades with every prompt. The result is **AI slop**: code that works today but becomes unmaintainable tomorrow.
+
 CleanSlice solves this by enforcing two structural rules:
 
 1. **Every feature lives in its own slice** — a folder containing everything that feature needs: API endpoints, UI components, data access, types, and state management.
 2. **Every slice follows three layers** — Presentation, Domain, and Data — with strict dependency rules that keep your code decoupled and testable.
 
-The result is a codebase where you can add, remove, or modify features independently, without unintended side effects.
+Because the structure is explicit and consistent, AI agents have a clear contract to follow. There's no ambiguity about where code belongs — which means less drift, fewer architectural mistakes, and output that stays clean as the codebase grows.
+
+The result is a codebase where you can add, remove, or modify features independently — whether written by humans or AI agents — without unintended side effects.
 
 ## Technology Stack
 

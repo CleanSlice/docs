@@ -7,7 +7,7 @@ let timer = null
 let resizeObserver = null
 let visibilityHandler = null
 
-const DESIGN_WIDTH = 580
+const DESIGN_WIDTH = 600
 
 function updateScale() {
   if (!container.value || !onion.value) return
@@ -176,14 +176,14 @@ onUnmounted(() => {
   --arch-layer-border: rgba(40, 100, 120, 0.35);
   --arch-core-bg: #c5d6e0;
   --arch-core-border: rgba(0, 130, 150, 0.5);
-  --arch-core-shadow: 0 0 16px rgba(0, 130, 150, 0.15), inset 0 0 10px rgba(0, 130, 150, 0.08);
-  --arch-layer-shadow: 0 0 16px rgba(0, 150, 170, 0.1), inset 0 0 10px rgba(0, 150, 170, 0.05);
+  --arch-core-shadow: 0 0 16px rgba(0, 130, 150, 0.15), inset 0 0 20px rgba(0, 140, 160, 0.2), inset 0 0 40px rgba(0, 130, 150, 0.1);
+  --arch-layer-shadow: 0 0 16px rgba(0, 150, 170, 0.1), inset 0 0 25px rgba(0, 150, 170, 0.15), inset 0 0 50px rgba(0, 140, 160, 0.06);
   --arch-layer1-bg: radial-gradient(circle, rgba(40, 140, 160, 0.1) 0%, rgba(40, 140, 160, 0.28) 100%);
   --arch-layer2-bg: radial-gradient(circle, rgba(0, 130, 150, 0.15) 0%, rgba(0, 130, 150, 0.38) 100%);
   --arch-label-color: #141e26;
   --arch-label-shadow: 0 0 4px rgba(0, 120, 140, 0.1);
   --arch-title-color: #22303b;
-  --arch-title-shadow: 0 0 8px rgba(0, 120, 150, 0.2);
+  --arch-title-shadow: 0 0 10px rgba(0, 140, 160, 0.3), 0 0 25px rgba(0, 130, 150, 0.15), 0 0 50px rgba(0, 120, 140, 0.08);
   --arch-domain-items-color: #3c4a57;
   --arch-domain-items-shadow: 0 0 4px rgba(0, 120, 140, 0.08);
   --arch-stack-border: rgba(40, 100, 120, 0.2);
@@ -206,6 +206,16 @@ onUnmounted(() => {
   --arch-hover-stack-text-shadow: 0 0 8px rgba(0, 120, 150, 0.25);
   --arch-halo-border: rgba(0, 150, 170, 0.7);
   --arch-halo-gradient: radial-gradient(circle, transparent 30%, rgba(0, 150, 170, 0.15) 100%);
+  --arch-bg-halo: radial-gradient(
+    circle,
+    rgba(0, 130, 150, 0) 0%,
+    rgba(0, 130, 150, 0) 15%,
+    rgba(0, 150, 170, 0.08) 28%,
+    rgba(0, 150, 170, 0.12) 38%,
+    rgba(0, 140, 160, 0.06) 50%,
+    rgba(0, 130, 150, 0.02) 65%,
+    rgba(0, 120, 140, 0) 85%
+  );
 
   display: flex;
   justify-content: center;
@@ -220,14 +230,14 @@ onUnmounted(() => {
   --arch-layer-border: rgba(255, 255, 255, 0.4);
   --arch-core-bg: #031627;
   --arch-core-border: rgba(0, 200, 220, 0.5);
-  --arch-core-shadow: 0 0 20px rgba(0, 200, 220, 0.15), inset 0 0 15px rgba(0, 200, 220, 0.08);
-  --arch-layer-shadow: 0 0 20px rgba(0, 255, 255, 0.1), inset 0 0 15px rgba(0, 255, 255, 0.05);
+  --arch-core-shadow: 0 0 20px rgba(0, 200, 220, 0.15), inset 0 0 25px rgba(0, 220, 240, 0.25), inset 0 0 50px rgba(0, 200, 220, 0.12);
+  --arch-layer-shadow: 0 0 20px rgba(0, 255, 255, 0.1), inset 0 0 30px rgba(0, 255, 255, 0.18), inset 0 0 60px rgba(0, 230, 240, 0.08);
   --arch-layer1-bg: radial-gradient(circle, rgba(122, 230, 230, 0.1) 0%, rgba(122, 230, 230, 0.3) 100%);
   --arch-layer2-bg: radial-gradient(circle, rgba(0, 230, 230, 0.2) 0%, rgba(0, 230, 230, 0.5) 100%);
   --arch-label-color: inherit;
   --arch-label-shadow: 0 0 8px rgba(0, 255, 255, 0.15);
   --arch-title-color: rgba(180, 255, 255, 1);
-  --arch-title-shadow: 0 0 12px rgba(0, 255, 255, 0.4), 0 0 30px rgba(0, 255, 255, 0.15);
+  --arch-title-shadow: 0 0 12px rgba(0, 255, 255, 0.5), 0 0 30px rgba(0, 255, 255, 0.25), 0 0 60px rgba(0, 220, 240, 0.12);
   --arch-domain-items-color: rgba(160, 220, 220, 0.8);
   --arch-domain-items-shadow: 0 0 6px rgba(0, 255, 255, 0.1);
   --arch-stack-border: rgba(255, 255, 255, 0.1);
@@ -250,6 +260,16 @@ onUnmounted(() => {
   --arch-hover-stack-text-shadow: 0 0 12px rgba(0, 255, 255, 0.4), 0 0 30px rgba(0, 255, 255, 0.15);
   --arch-halo-border: rgba(0, 255, 255, 0.8);
   --arch-halo-gradient: radial-gradient(circle, transparent 30%, rgba(0, 255, 255, 0.2) 100%);
+  --arch-bg-halo: radial-gradient(
+    circle,
+    rgba(0, 180, 200, 0) 0%,
+    rgba(0, 180, 200, 0) 15%,
+    rgba(0, 200, 220, 0.12) 28%,
+    rgba(0, 220, 230, 0.18) 38%,
+    rgba(0, 200, 220, 0.10) 50%,
+    rgba(0, 180, 200, 0.04) 65%,
+    rgba(0, 160, 180, 0) 85%
+  );
 
   color: white;
 }
@@ -262,6 +282,19 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   transform-origin: center;
+}
+
+.arch-onion::before {
+  content: '';
+  position: absolute;
+  width: 750px;
+  height: 750px;
+  border-radius: 50%;
+  background: var(--arch-bg-halo);
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(30px);
+  transition: background 0.5s ease;
 }
 
 /* Base circle */

@@ -101,6 +101,44 @@
   --vp-button-alt-hover-bg: #1A2B36;
 }
 
+/* ---- Glow utility ---- */
+:root {
+  --cs-glow-text: 0 0 10px rgba(0, 140, 160, 0.3), 0 0 25px rgba(0, 130, 150, 0.15), 0 0 50px rgba(0, 120, 140, 0.08);
+  --cs-glow-box: 0 0 16px rgba(0, 150, 170, 0.15), 0 0 40px rgba(0, 140, 160, 0.08);
+}
+
+.dark {
+  --cs-glow-text: 0 0 12px rgba(0, 255, 255, 0.5), 0 0 30px rgba(0, 255, 255, 0.25), 0 0 60px rgba(0, 220, 240, 0.12);
+  --cs-glow-box: 0 0 20px rgba(0, 255, 255, 0.2), 0 0 50px rgba(0, 220, 240, 0.1);
+}
+
+.cs-glow {
+  text-shadow: var(--cs-glow-text);
+  box-shadow: var(--cs-glow-box);
+}
+
+.cs-glow-text {
+  text-shadow: var(--cs-glow-text);
+}
+
+.cs-glow-box {
+  box-shadow: var(--cs-glow-box);
+}
+
+/* Apply glow to hero name and brand button */
+.VPHero .name {
+  text-shadow: var(--cs-glow-text);
+}
+
+.VPHero .VPButton.brand {
+  box-shadow: var(--cs-glow-box);
+  transition: box-shadow 0.3s ease;
+}
+
+.VPHero .VPButton.brand:hover {
+  box-shadow: var(--cs-glow-box), 0 0 30px rgba(0, 200, 220, 0.15);
+}
+
 /* ---- Hero architecture diagram ---- */
 .VPHero .image-container {
   overflow: visible !important;
