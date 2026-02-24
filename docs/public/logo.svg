@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+
+  <style>
+    :root {
+      --bg: #071A22;
+      --l1: #0E3A46;
+      --l2: #1E6E7A;
+      --l3: #3BB9C4;
+      --l4: #6FEFF5;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #F4FBFC;
+        --l1: #0B2F38;
+        --l2: #136B76;
+        --l3: #1FB6C1;
+        --l4: #4FD1D9;
+      }
+    }
+  </style>
+
+  <rect width="64" height="64" rx="14" fill="var(--bg)"/>
+
+  <ellipse cx="32" cy="48" rx="20" ry="7" fill="var(--l1)"/>
+  <ellipse cx="32" cy="38" rx="20" ry="7" fill="var(--l2)"/>
+  <ellipse cx="32" cy="28" rx="20" ry="7" fill="var(--l3)"/>
+  <ellipse cx="32" cy="18" rx="20" ry="7" fill="var(--l4)"/>
+
+</svg>
