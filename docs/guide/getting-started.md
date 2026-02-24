@@ -10,38 +10,16 @@ This guide walks you through creating a new CleanSlice project from scratch.
 
 ## Create the Project
 
-### 1. Initialize the project root
+The fastest way to start is with the CLI:
 
 ```bash
-mkdir my-project
-cd my-project
+npx create-cleanslice my-app
+cd my-app
 ```
 
-### 2. Set up the backend (NestJS)
+This scaffolds a complete project with NestJS backend, Nuxt frontend, and all CleanSlice conventions pre-configured.
 
-```bash
-npx @nestjs/cli new api --package-manager npm --skip-git
-```
-
-Create the slices folder:
-
-```bash
-mkdir -p api/src/slices
-```
-
-### 3. Set up the frontend (Nuxt)
-
-```bash
-npx nuxi init app
-```
-
-Create the slices folder:
-
-```bash
-mkdir -p app/slices
-```
-
-### 4. Verify the structure
+### Verify the structure
 
 You should now have:
 

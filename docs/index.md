@@ -33,3 +33,20 @@ features:
     title: Type-Safe Throughout
     details: Strict TypeScript conventions, generated API SDKs from OpenAPI specs, and domain types that keep your entire stack in sync.
 ---
+
+<div class="vp-doc" style="max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem;">
+
+## Quick Start
+
+```bash
+npx create-cleanslice my-app
+cd my-app
+```
+
+Then set up Claude Code with the CleanSlice MCP server:
+
+```bash
+claude mcp add --scope user --transport http cleanslice https://mcp.cleanslice.org/mcp
+```
+
+</div>
