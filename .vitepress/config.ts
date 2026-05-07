@@ -27,6 +27,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       { text: 'Architecture', link: '/architecture/overview' },
       { text: 'Backend', link: '/backend/getting-started' },
       { text: 'Frontend', link: '/frontend/getting-started' },
+      { text: 'Ecosystem', link: '/ecosystem/' },
       {
         text: 'More',
         items: [
@@ -120,6 +121,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           text: 'Examples',
           items: [
             { text: 'User Slice', link: '/examples/user-slice' },
+          ],
+        },
+      ],
+      '/ecosystem/': [
+        {
+          text: 'Ecosystem',
+          items: [
+            { text: 'Overview', link: '/ecosystem/' },
+            { text: 'Ranch', link: '/ecosystem/ranch' },
+            { text: 'Runtime', link: '/ecosystem/runtime' },
+            { text: 'Bridle', link: '/ecosystem/bridle' },
+            { text: 'Paddock', link: '/ecosystem/paddock' },
           ],
         },
       ],

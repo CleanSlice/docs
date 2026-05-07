@@ -2,7 +2,9 @@ import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
 import McpBanner from './McpBanner.vue'
 import ArchitectureDiagram from './ArchitectureDiagram.vue'
-import './custom.css'
+import EcosystemTabs from './EcosystemTabs.vue'
+import BuiltWith from './BuiltWith.vue'
+import './cleanslice.css'
 
 const GtmNoscript = {
   render() {
@@ -22,6 +24,7 @@ export default {
       'layout-top': () => h(GtmNoscript),
       'home-hero-image': () => h(ArchitectureDiagram),
       'home-features-before': () => h(McpBanner),
+      'home-features-after': () => [h(EcosystemTabs), h(BuiltWith)],
     })
   },
 }
