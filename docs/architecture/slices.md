@@ -174,6 +174,7 @@ export default defineNuxtConfig({
 
 ## What's Next?
 
+- [Subslices](/architecture/subslices) — Grouping related slices under a parent namespace
 - [Dependency Flow](/architecture/dependency-flow) — How dependency injection connects layers
 - [Backend Slice Structure](/backend/slice-structure) — Detailed backend patterns
 - [Frontend Slice Structure](/frontend/slice-structure) — Detailed frontend patterns

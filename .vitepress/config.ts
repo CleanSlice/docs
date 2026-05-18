@@ -57,6 +57,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             { text: 'Overview', link: '/architecture/overview' },
             { text: 'Layers', link: '/architecture/layers' },
             { text: 'Slices', link: '/architecture/slices' },
+            { text: 'Subslices', link: '/architecture/subslices' },
             { text: 'Dependency Flow', link: '/architecture/dependency-flow' },
           ],
         },

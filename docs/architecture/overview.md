@@ -93,4 +93,5 @@ Slices interact through their public domain interfaces, not through internal imp
 
 - [Layers](/architecture/layers) — Detailed breakdown of each layer's responsibilities
 - [Slices](/architecture/slices) — How to structure and compose slices
+- [Subslices](/architecture/subslices) — Grouping related slices under a parent namespace
 - [Dependency Flow](/architecture/dependency-flow) — Import rules and dependency injection
