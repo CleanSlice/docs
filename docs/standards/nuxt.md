@@ -204,4 +204,5 @@ app/
 - [Frontend Getting Started](/frontend/getting-started) — Full setup guide
 - [State Management](/frontend/state-management) — Pinia store patterns
 - [UI Components](/frontend/ui-components) — shadcn-vue and Tailwind setup
+- [Component Logic](/standards/component-logic) — pure `*.logic.ts` decision files vs. composables
 - [TypeScript Standards](/standards/typescript) — General TS conventions

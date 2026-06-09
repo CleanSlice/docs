@@ -113,6 +113,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             { text: 'TypeScript', link: '/standards/typescript' },
             { text: 'NestJS', link: '/standards/nestjs' },
             { text: 'Nuxt', link: '/standards/nuxt' },
+            { text: 'Component Logic', link: '/standards/component-logic' },
             { text: 'Git Commits', link: '/standards/git' },
           ],
         },
