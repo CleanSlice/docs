@@ -175,6 +175,10 @@ export class UserMapper {
 }
 ```
 
+### Slices Without a Data Source
+
+Not every slice talks to a database. A slice whose job is pure logic or a set of in-process capabilities has **no Prisma model and no data gateway** — gateways abstract *data sources*, and there is nothing to abstract. Such a slice still follows the same layers: a **service** (its business logic or engine) in `domain/`, and, when it provides a set of capabilities, a **gateway** over self-contained **repositories** in `data/` (see [Gateways -> Gateway Over a Registry of Repositories](/backend/gateways)). Do not add an empty `.gateway.ts` just to match the CRUD shape — model what the slice actually is.
+
 ## The dtos/ Folder
 
 DTOs sit at the API boundary. They define what goes in (request DTOs) and what comes out (response DTOs), with validation and Swagger decorators.

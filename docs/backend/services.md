@@ -222,6 +222,12 @@ export class CheckoutService {
 }
 ```
 
+## A Service Can Be an Engine
+
+A service is not always a thin wrapper around CRUD. It is simply the slice's business logic, so it can be a stateful **engine** — a loop, an orchestrator, a state machine — that injects the gateway and drives it. A tool-loop that repeatedly calls a model and dispatches tools is a service; so is a pipeline that fans work across gateways. Name it as the slice's service (`{slice}.service.ts` / `{Slice}Service`) even when the class does far more than forward calls.
+
+When such an engine is reusable by more than one consumer, put it **in the slice that owns the capability it drives, not in a consumer**. A tool-loop belongs in the `tool` slice, next to the tools it runs, so every consumer shares one engine instead of each re-implementing it — the consumer imports the service and calls it.
+
 ## Method Organization
 
 Organize service methods with public methods first and private helpers last:

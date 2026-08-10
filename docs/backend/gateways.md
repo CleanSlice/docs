@@ -19,6 +19,117 @@ CleanSlice distinguishes between gateways and repositories:
 
 Prisma already provides a repository-level abstraction (generated client with typed methods). Adding another repository layer on top of Prisma is redundant. Use a gateway directly with Prisma.
 
+## Repositories Are Self-Contained
+
+A repository is a **self-contained black box**. It wraps exactly one concrete source or capability — an external SDK, an HTTP client, a pure computation — and exposes it with its own plain types. A repository **must not import the slice's `domain/`**: no domain contracts, no domain types. It knows nothing about the abstraction it will eventually satisfy.
+
+The **gateway** is the single class that connects repositories to the domain. It implements the domain contract (the abstract `I{X}Gateway`) and **adapts** each repository's raw shape into domain types. The dependency arrow points one way: a repository depends on nothing in the slice; the gateway depends on the domain contract and on the repositories.
+
+```
+Service (domain)  ->  IGateway (domain contract)
+                          ^ implements
+                      Gateway (data)   <- the only data class that touches the domain
+                          | adapts
+              +-----------+-----------+
+         RepoA (data)  RepoB (data)  RepoC (data)   <- self-contained, no domain imports
+```
+
+::: warning
+If a repository imports from `domain/`, it is no longer a self-contained adapter — it has quietly become a second gateway. Move the domain-facing logic into the gateway and keep the repository a plain wrapper.
+:::
+
+## Gateway Over a Registry of Repositories
+
+The table above shows the 1:1 case (one gateway, one Prisma-backed source). A gateway can also **orchestrate a set of repositories** — the same contract satisfied by many self-contained repositories, collected through a multi-provider token and adapted by the gateway.
+
+This fits any homogeneous capability set: a toolset an LLM can call, a group of notification channels, a set of import sources. Each capability is a self-contained repository; the gateway presents them to the domain.
+
+```typescript [domain/tool.types.ts]
+// The domain-facing shape the gateway produces. The repositories do NOT import this.
+export interface ITool {
+  def: { name: string; description: string; inputSchema: object };
+  execute(input: unknown): Promise<unknown>;
+}
+
+// A multi-provider DI token that collects every tool repository.
+export const TOOL_REPOSITORIES = Symbol('TOOL_REPOSITORIES');
+```
+
+```typescript [data/repositories/calculatorTool.repository.ts]
+import { Injectable } from '@nestjs/common';
+
+// Self-contained: imports nothing from the slice's domain. Its own fields, its own types.
+@Injectable()
+export class CalculatorToolRepository {
+  readonly name = 'calculator';
+  readonly description = 'Evaluate an arithmetic expression.';
+  readonly inputSchema = { type: 'object', properties: { expr: { type: 'string' } } };
+
+  async run(input: { expr: string }): Promise<number> {
+    return evaluate(input.expr);
+  }
+}
+```
+
+```typescript [domain/tool.gateway.ts]
+import { ITool } from './tool.types';
+
+export abstract class IToolGateway {
+  abstract all(): ITool[];
+  abstract find(name: string): ITool | undefined;
+}
+```
+
+```typescript [data/tool.gateway.ts]
+import { Inject, Injectable } from '@nestjs/common';
+import { IToolGateway } from '../domain/tool.gateway';
+import { ITool, TOOL_REPOSITORIES } from '../domain/tool.types';
+
+// A local, structural shape for the self-contained repos — kept in data, not domain.
+type ToolRepository = {
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: object;
+  run(input: unknown): Promise<unknown>;
+};
+
+// The ONE place repositories meet the domain: it adapts each repo into an ITool.
+@Injectable()
+export class ToolGateway extends IToolGateway {
+  constructor(@Inject(TOOL_REPOSITORIES) private readonly repos: ToolRepository[]) {
+    super();
+  }
+
+  all(): ITool[] {
+    return this.repos.map((r) => ({
+      def: { name: r.name, description: r.description, inputSchema: r.inputSchema },
+      execute: (input) => r.run(input),
+    }));
+  }
+
+  find(name: string): ITool | undefined {
+    return this.all().find((t) => t.def.name === name);
+  }
+}
+```
+
+```typescript [tool.module.ts]
+const repos = [CurrentTimeToolRepository, CalculatorToolRepository, TextStatsToolRepository];
+
+@Module({
+  providers: [
+    ...repos,
+    { provide: TOOL_REPOSITORIES, useFactory: (...t) => t, inject: repos },
+    { provide: IToolGateway, useClass: ToolGateway },
+    ToolService, // the service injects IToolGateway, never the repositories
+  ],
+  exports: [IToolGateway, ToolService],
+})
+export class ToolModule {}
+```
+
+Adding a capability is one new self-contained repository plus one entry in the token's `inject` list. The gateway, the service, and every consumer stay untouched.
+
 ## File Structure
 
 ```
