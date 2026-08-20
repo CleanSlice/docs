@@ -155,7 +155,11 @@ A green run means these three rules hold. It does not mean the code is CleanSlic
 
 Prove every rule with a **red run**: break the code on purpose, watch the rule
 fire, put it back. A rule that stays green on broken code is worse than a missing
-one — it manufactures confidence. Two ways to get exactly that, both silent:
+one — it manufactures confidence.
+
+Two ways to get exactly that, both silent. Both belong to dependency-cruiser's
+Node API, which is how the script drives it; the `depcruise` CLI sets them for
+you, so a project running a plain config file through the CLI is not affected.
 
 - Omitting `validate: true` — dependency-cruiser then parses the rule set, echoes
   it back, and never applies it. Everything passes.
