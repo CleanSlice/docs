@@ -114,6 +114,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             { text: 'NestJS', link: '/standards/nestjs' },
             { text: 'Nuxt', link: '/standards/nuxt' },
             { text: 'Component Logic', link: '/standards/component-logic' },
+            { text: 'Boundary Check', link: '/standards/boundary-check' },
             { text: 'Git Commits', link: '/standards/git' },
           ],
         },
