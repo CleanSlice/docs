@@ -39,7 +39,7 @@ features:
 ## Quick Start
 
 ```bash
-npx create-cleanslice my-app
+bunx create-cleanslice my-app
 cd my-app
 ```
 

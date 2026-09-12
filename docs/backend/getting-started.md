@@ -30,7 +30,7 @@ Every feature lives inside `src/slices/`. Infrastructure slices go under `setup/
 
 ## Prerequisites
 
-Make sure you have Docker, Node.js 24+, and npm installed. Create an `.nvmrc` file at the project root to lock the Node version:
+Make sure you have Docker, Node.js 24+, and [Bun](/standards/bun) installed. Create an `.nvmrc` file at the project root to lock the Node version:
 
 ```
 24
@@ -309,14 +309,14 @@ import { UserService } from '#/user/domain/user.service';
 ```
 
 ::: tip Why # instead of @?
-The `@` symbol is already used for scoped npm packages like `@nestjs/common`. Using `#` makes it immediately clear that the import points to an internal slice.
+The `@` symbol is already used for scoped packages like `@nestjs/common`. Using `#` makes it immediately clear that the import points to an internal slice.
 :::
 
 ## Quick Start
 
 ```bash
 # 1. Install dependencies
-npm install
+bun install
 
 # 2. Copy environment file
 cp .env.example .env.dev
@@ -325,10 +325,10 @@ cp .env.example .env.dev
 docker-compose up -d
 
 # 4. Run database migrations
-npm run migrate
+bun run migrate
 
 # 5. Start development server
-npm run start:dev
+bun run start:dev
 
 # 6. Open Swagger UI
 open http://localhost:3000/api

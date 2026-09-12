@@ -114,6 +114,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         {
           text: 'Standards',
           items: [
+            { text: 'Bun', link: '/standards/bun' },
             { text: 'TypeScript', link: '/standards/typescript' },
             { text: 'NestJS', link: '/standards/nestjs' },
             { text: 'Nuxt', link: '/standards/nuxt' },

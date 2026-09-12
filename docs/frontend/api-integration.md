@@ -7,7 +7,7 @@ CleanSlice generates a fully typed API client from your backend's OpenAPI/Swagge
 The flow is straightforward:
 
 1. Your NestJS API generates a `swagger-spec.json` file at startup
-2. You run `npm run build:api` in the Nuxt app
+2. You run `bun run build:api` in the Nuxt app
 3. `@hey-api/openapi-ts` reads the spec and generates TypeScript code
 4. Feature slices import the generated services and types via the `#api` alias
 
@@ -25,10 +25,10 @@ swagger-spec.json  ──build:api──>  slices/setup/api/data/repositories/ap
 
 ```bash
 # Code generator (dev dependency)
-npm install -D @hey-api/openapi-ts
+bun add -d @hey-api/openapi-ts
 
 # Runtime client
-npm install @hey-api/client-axios axios
+bun add @hey-api/client-axios axios
 ```
 
 Add the build script to your `package.json`:
@@ -37,8 +37,8 @@ Add the build script to your `package.json`:
 {
   "scripts": {
     "build:api": "openapi-ts",
-    "dev": "npm run build:api && nuxt dev",
-    "build": "npm run build:api && nuxt build"
+    "dev": "bun run build:api && nuxt dev",
+    "build": "bun run build:api && nuxt build"
   }
 }
 ```
@@ -131,7 +131,7 @@ API_URL=http://localhost:3333
 For production builds, pass it as a build argument:
 
 ```bash
-API_URL=https://api.yourapp.com npm run build
+API_URL=https://api.yourapp.com bun run build
 ```
 
 ## Generated SDK Structure
@@ -156,7 +156,7 @@ slices/setup/api/data/repositories/api/
 ```
 
 ::: warning
-The files in `data/repositories/api/` are auto-generated. Any manual edits are overwritten the next time you run `npm run build:api`.
+The files in `data/repositories/api/` are auto-generated. Any manual edits are overwritten the next time you run `bun run build:api`.
 :::
 
 ## Barrel Exports
@@ -355,7 +355,7 @@ import {
 
 ## Regenerating the SDK
 
-Run `npm run build:api` whenever:
+Run `bun run build:api` whenever:
 
 - Backend API endpoints change
 - DTOs are added or modified
@@ -366,10 +366,10 @@ Run `npm run build:api` whenever:
 
 ```bash
 # Terminal 1: Run the API (generates swagger-spec.json on start)
-cd api && npm run start:dev
+cd api && bun run start:dev
 
 # Terminal 2: Run the app (regenerates SDK, then starts Nuxt)
-cd app && npm run dev
+cd app && bun run dev
 ```
 
 ::: tip

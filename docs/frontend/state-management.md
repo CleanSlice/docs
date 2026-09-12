@@ -22,7 +22,7 @@ All stores are globally available. No import needed.
 ## Installation
 
 ```bash
-npm install @pinia/nuxt pinia
+bun add @pinia/nuxt pinia
 ```
 
 ## Pinia Slice Configuration

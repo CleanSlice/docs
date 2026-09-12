@@ -111,7 +111,7 @@ export default defineNuxtConfig({
 Generate the SDK from your running backend:
 
 ```bash
-npx @hey-api/openapi-ts \
+bunx @hey-api/openapi-ts \
   -i http://localhost:4000/api-json \
   -o app/slices/setup/api/data/repositories/api \
   -c axios

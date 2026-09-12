@@ -176,7 +176,7 @@ Each setup slice provides a piece of core infrastructure:
 
 ## Post-Installation Cleanup
 
-If you scaffold a new Nuxt app with `npx nuxi init`, remove the default directories that CleanSlice replaces:
+If you scaffold a new Nuxt app with `bunx nuxi init`, remove the default directories that CleanSlice replaces:
 
 ```bash
 rm -rf components composables pages layouts middleware plugins assets
@@ -189,15 +189,15 @@ All of these now live inside individual slices.
 Build and run your app in production using Docker:
 
 ```dockerfile [Dockerfile]
-FROM node:22-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 WORKDIR /usr/src/app
-COPY package*.json ./
-RUN npm install
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
 ARG API_URL
-RUN API_URL=${API_URL} npm run build
+RUN API_URL=${API_URL} bun run build
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+CMD ["bun", "run", "start"]
 ```
 
 ```bash

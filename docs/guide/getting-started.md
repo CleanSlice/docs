@@ -4,7 +4,8 @@ This guide walks you through creating a new CleanSlice project from scratch.
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) v18 or later
+- [Bun](https://bun.sh/) — the package manager CleanSlice uses everywhere, see [Bun](/standards/bun)
+- [Node.js](https://nodejs.org/) v18 or later — still the production runtime for the api
 - [Docker](https://www.docker.com/) (for PostgreSQL and other services)
 - A code editor (VS Code recommended)
 
@@ -13,7 +14,7 @@ This guide walks you through creating a new CleanSlice project from scratch.
 The fastest way to start is with the CLI:
 
 ```bash
-npx create-cleanslice my-app
+bunx create-cleanslice my-app
 cd my-app
 ```
 
@@ -62,9 +63,9 @@ Install Prisma and initialize it:
 
 ```bash
 cd api
-npm install @prisma/client
-npm install -D prisma
-npx prisma init
+bun add @prisma/client
+bun add -d prisma
+bunx prisma init
 ```
 
 Create the Prisma setup slice at `api/src/slices/prisma/`:
@@ -109,7 +110,7 @@ export { PrismaService } from './prisma.service';
 Install Swagger for API documentation:
 
 ```bash
-npm install @nestjs/swagger
+bun add @nestjs/swagger
 ```
 
 Configure it in `api/src/main.ts`:
