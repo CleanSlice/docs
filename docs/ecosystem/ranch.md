@@ -35,7 +35,7 @@ It's the production answer to "how do I run a fleet of agents without writing my
 
 ```bash
 bun add -g @cleanslice/ranch
-# or: npm install -g @cleanslice/ranch
+# or: bun add -g @cleanslice/ranch
 
 ranch dev    # offers to clone, then starts api + app + admin + local k3d
 ```

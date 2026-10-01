@@ -20,8 +20,8 @@ You edit the per-slice `.prisma` files. The `prisma-import` tool merges them. Pr
 ## Installation
 
 ```bash
-npm install @prisma/client
-npm install -D prisma prisma-import
+bun add @prisma/client
+bun add -d prisma prisma-import
 ```
 
 Install the **Prisma Import** VSCode extension (`ajmnz.prisma-import`) for syntax highlighting and IntelliSense in split schema files.
@@ -33,13 +33,13 @@ Add the prisma-import config and scripts to your `package.json`:
 ```json [package.json]
 {
   "scripts": {
-    "generate": "npx prisma-import --force",
-    "premigrate": "npx prisma-import --force",
-    "migrate": "dotenv -e .env.dev -- npx prisma migrate dev && dotenv -e .env.dev -- npx prisma generate",
-    "migrate:prod": "dotenv -e .env.prod -- npx prisma migrate deploy",
-    "studio": "dotenv -e .env.dev -- npx prisma studio",
+    "generate": "bunx prisma-import --force",
+    "premigrate": "bunx prisma-import --force",
+    "migrate": "dotenv -e .env.dev -- bunx prisma migrate dev && dotenv -e .env.dev -- bunx prisma generate",
+    "migrate:prod": "dotenv -e .env.prod -- bunx prisma migrate deploy",
+    "studio": "dotenv -e .env.dev -- bunx prisma studio",
     "docker": "docker compose up -d",
-    "predev": "npm run docker && npm run migrate"
+    "predev": "bun run docker && bun run migrate"
   },
   "prisma": {
     "import": {
@@ -217,9 +217,9 @@ When you change a model:
 ```bash
 # 1. Edit the slice .prisma file
 # 2. Merge schemas and create migration
-npm run migrate
+bun run migrate
 # 3. View data in Prisma Studio (optional)
-npm run studio
+bun run studio
 ```
 
 The `premigrate` hook runs `prisma-import --force` automatically before each migration, so you only need one command.

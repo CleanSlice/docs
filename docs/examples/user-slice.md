@@ -28,7 +28,7 @@ Run the migration:
 
 ```bash
 cd api
-npx prisma migrate dev --name add-user
+bunx prisma migrate dev --name add-user
 ```
 
 ## Step 2: Backend — Domain Layer
@@ -604,10 +604,10 @@ app/slices/user/
 
 ## Verification
 
-1. Start the API: `cd api && npm run start:dev`
+1. Start the API: `cd api && bun run start:dev`
 2. Check Swagger: Open `http://localhost:4000/api` — you should see all user endpoints
-3. Generate the SDK: `npx @hey-api/openapi-ts -i http://localhost:4000/api-json -o app/slices/setup/api/data/repositories/api -c axios`
-4. Start the app: `cd app && npm run dev`
+3. Generate the SDK: `bunx @hey-api/openapi-ts -i http://localhost:4000/api-json -o app/slices/setup/api/data/repositories/api -c axios`
+4. Start the app: `cd app && bun run dev`
 5. Visit `http://localhost:3000/users` — the user list page should render
 
 ## What's Next?

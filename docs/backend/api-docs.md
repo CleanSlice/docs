@@ -14,7 +14,7 @@ This means that every controller endpoint and every DTO property must be properl
 ## Installation
 
 ```bash
-npm install @nestjs/swagger swagger-ui-express
+bun add @nestjs/swagger swagger-ui-express
 ```
 
 ## Setup in main.ts

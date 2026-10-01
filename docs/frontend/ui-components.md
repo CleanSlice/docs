@@ -15,16 +15,16 @@ UI components are shared infrastructure, not feature code. By centralizing them 
 
 ```bash
 # Tailwind and shadcn
-npm install -D @nuxtjs/tailwindcss shadcn-nuxt tailwindcss-animate
-npm install -D @tailwindcss/typography sass sass-loader vite-svg-loader
+bun add -d @nuxtjs/tailwindcss shadcn-nuxt tailwindcss-animate
+bun add -d @tailwindcss/typography sass sass-loader vite-svg-loader
 
 # Runtime dependencies
-npm install clsx tailwind-merge lucide-vue-next
-npm install vee-validate @vee-validate/zod zod vaul-vue
+bun add clsx tailwind-merge lucide-vue-next
+bun add vee-validate @vee-validate/zod zod vaul-vue
 
 # Optional: web fonts
-npm install webfontloader
-npm install -D @types/webfontloader
+bun add webfontloader
+bun add -d @types/webfontloader
 ```
 
 ## Slice Structure
@@ -293,10 +293,10 @@ Then install components:
 
 ```bash
 # Single component
-npx shadcn-vue@latest add button
+bunx shadcn-vue@latest add button
 
 # Multiple components at once
-npx shadcn-vue@latest add card input textarea dialog toast
+bunx shadcn-vue@latest add card input textarea dialog toast
 ```
 
 ### components.json
@@ -325,7 +325,7 @@ This file tells the shadcn CLI where to put components and where to find utiliti
 ### Common Components to Install
 
 ```bash
-npx shadcn-vue@latest add button card input textarea select \
+bunx shadcn-vue@latest add button card input textarea select \
   checkbox switch form dropdown-menu navigation-menu tabs \
   breadcrumb alert alert-dialog toast sonner dialog sheet \
   popover tooltip table avatar badge separator scroll-area

@@ -8,16 +8,16 @@ Built with [VitePress](https://vitepress.dev/).
 
 ```bash
 # Install dependencies
-npm install
+bun install
 
 # Start dev server
-npm run docs:dev
+bun run docs:dev
 
 # Build for production
-npm run docs:build
+bun run docs:build
 
 # Preview production build
-npm run docs:preview
+bun run docs:preview
 ```
 
 The dev server runs at `http://localhost:5173` by default.
@@ -92,6 +92,6 @@ docs/
 The production build outputs to `.vitepress/dist/`. Deploy this folder to any static hosting provider (Netlify, Vercel, GitHub Pages, Cloudflare Pages, etc.).
 
 ```bash
-npm run docs:build
+bun run docs:build
 # Deploy .vitepress/dist/
 ```

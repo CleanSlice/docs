@@ -25,7 +25,7 @@ The service depends on a gateway *interface*, not a concrete implementation. At 
 ## Installation
 
 ```bash
-npm install inversify reflect-metadata
+bun add inversify reflect-metadata
 ```
 
 Your `tsconfig.json` must enable decorators (already done if you followed [Getting Started](/frontend/getting-started)):

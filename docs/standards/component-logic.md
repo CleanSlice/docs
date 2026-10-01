@@ -107,7 +107,7 @@ export default [
 
 The `no-restricted-syntax` rule matters because Nuxt **auto-imports** `ref`/`computed`/etc. — a logic file can use them with no import statement at all, so an import-only guard would miss them.
 
-Verify the guard fires before relying on it: temporarily add `import { ref } from 'vue'` (and a `ref(0)` call) to a logic file, run the app's lint script (e.g. `pnpm -C app lint`), confirm both rules error, then revert.
+Verify the guard fires before relying on it: temporarily add `import { ref } from 'vue'` (and a `ref(0)` call) to a logic file, run the app's lint script (e.g. `bun run --cwd app lint`), confirm both rules error, then revert.
 
 ## Component-Mount Test
 

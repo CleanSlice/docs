@@ -15,19 +15,19 @@ api/
 ```
 
 ```bash
-npm install --save-dev dependency-cruiser
+bun add -d dependency-cruiser
 ```
 
 ```json
 {
   "scripts": {
     "check": "node scripts/cleanslice-check.cjs",
-    "predev": "npm run check && npm run docker && npm run generate && npm run migrate"
+    "predev": "bun run check && bun run docker && bun run generate && bun run migrate"
   }
 }
 ```
 
-`predev` runs before `dev` automatically. Keep `npm run check` first — a violation then stops the start before docker, prisma or nest do any work.
+`predev` runs before `dev` automatically. Keep `bun run check` first — a violation then stops the start before docker, prisma or nest do any work.
 
 ## Configuration
 
@@ -108,7 +108,7 @@ See [Layers](/architecture/layers), [Dependency Flow](/architecture/dependency-f
 | starter kit | 2 | 64 | ~0.30 s |
 | agentfy2 | 8 | 348 | ~0.55 s |
 
-End to end, `npm run dev` in the starter kit — docker, prisma-import, migrate, a full nest compile, up to "Nest application successfully started":
+End to end, `bun run dev` in the starter kit — docker, prisma-import, migrate, a full nest compile, up to "Nest application successfully started":
 
 | | run 1 | run 2 |
 |---|---|---|
