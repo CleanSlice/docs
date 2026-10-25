@@ -187,6 +187,7 @@ export class UserMapper {
 - Handles all external communication (database, APIs, file system)
 - Uses mappers to transform data — never returns raw database types
 - Contains no business logic
+- May import another slice's **mapper** for composing nested data; never another slice's concrete gateway (depend on its domain contract instead)
 
 ## Layer Dependency Summary
 

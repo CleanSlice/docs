@@ -1,26 +1,29 @@
 # Dependency Injection
 
-CleanSlice uses [InversifyJS](https://inversify.io/) to bring dependency injection to the frontend. This lets you define gateway interfaces in a domain layer and swap implementations (real API, mock data, offline mode) without changing business logic or components.
+The default data path in a CleanSlice app is short: a `Provider.vue` calls a Pinia store, and the store calls the generated API SDK from `#api`. Most slices need nothing more. See [State Management](/frontend/state-management) and [API Integration](/frontend/api-integration).
 
-## Why DI in the Frontend?
-
-In a typical Vue/Nuxt app, components call API functions directly. This works for small apps, but as complexity grows you hit problems:
-
-- **Testing** -- You cannot unit test business logic without hitting the network
-- **Flexibility** -- Switching between real and mock data requires changing imports everywhere
-- **Coupling** -- Components know about HTTP details, Axios, and API response shapes
-
-Dependency injection solves these by introducing an abstraction layer:
+Dependency injection is the optional layer on top of that path. CleanSlice uses [InversifyJS](https://inversify.io/) for it. You reach for DI when a slice needs a **swappable adapter**: a mock gateway for development and tests, an offline implementation, a second transport, or a client-side domain service that carries real business policy and must be unit-tested without the network.
 
 ```
-Component  -->  Composable  -->  Service  -->  Gateway Interface
-                                                    |
-                                           +--------+--------+
-                                           |                 |
-                                     API Gateway       Mock Gateway
+Default (no DI)          With DI
+---------------          -------
+Provider.vue             Provider.vue
+   |                        |
+Pinia store                Pinia store
+   |                        |
+#api SDK                 IUserGateway (interface, domain/)
+                            |
+                   +--------+--------+
+                   |                 |
+             UserGateway       MockUserGateway
+             (#api SDK)        (in-memory)
 ```
 
-The service depends on a gateway *interface*, not a concrete implementation. At startup, the DI container wires the correct implementation.
+The store depends on the gateway *interface*. At startup the container binds the implementation, and nothing above the store changes when the binding does.
+
+::: tip When not to use it
+If a slice has one real implementation and no client-side policy, do not add a gateway interface for symmetry. The SDK already is the typed contract; an interface over it that is never swapped is a second copy of the same shape.
+:::
 
 ## Installation
 
@@ -42,7 +45,7 @@ Your `tsconfig.json` must enable decorators (already done if you followed [Getti
 
 ## Project Structure
 
-The DI system spans two layers: the `setup/di` slice provides the container and tokens, while each feature slice registers its own bindings.
+The DI system spans two layers: the `setup/di` slice provides the container and tokens, while each feature slice that uses DI registers its own bindings.
 
 ```
 slices/
@@ -58,15 +61,18 @@ slices/
 ├── user/
 │   ├── domain/
 │   │   ├── user.gateway.ts      # Gateway interface
-│   │   ├── user.service.ts      # Business logic
+│   │   ├── user.service.ts      # Optional: client-side business policy
 │   │   └── user.types.ts        # Domain types
 │   ├── data/
-│   │   ├── user.gateway.ts      # Real API implementation
+│   │   ├── user.gateway.ts      # Real implementation over the #api SDK
 │   │   └── mock.gateway.ts      # Mock implementation
 │   ├── plugins/
 │   │   └── di.ts                # Registers user bindings
-│   └── composables/
-│       └── useUser.ts           # Resolves from container
+│   ├── stores/
+│   │   └── user.ts              # Resolves the gateway from the container
+│   └── components/
+│       └── userList/
+│           └── Provider.vue     # Calls the store
 ```
 
 ## Step 1: DI Setup Slice
@@ -85,14 +91,6 @@ export const TYPES = {
   // User Slice
   UserGateway: Symbol.for('IUserGateway'),
   UserService: Symbol.for('UserService'),
-
-  // Task Slice
-  TaskGateway: Symbol.for('ITaskGateway'),
-  TaskService: Symbol.for('TaskService'),
-
-  // Auth Slice
-  AuthGateway: Symbol.for('IAuthGateway'),
-  AuthService: Symbol.for('AuthService'),
 } as const;
 
 export type TYPES = typeof TYPES;
@@ -131,11 +129,11 @@ class DIContainer {
   }
 
   static isDevelopment(): boolean {
-    return process.env.NODE_ENV === 'development';
+    return import.meta.env.DEV;
   }
 
   static useMocks(): boolean {
-    return process.env.NUXT_PUBLIC_USE_MOCKS === 'true';
+    return import.meta.env.VITE_USE_MOCKS === 'true';
   }
 }
 
@@ -187,7 +185,6 @@ import { container } from '../container';
 
 export function registerSetupDI(): void {
   // Register core infrastructure here: Logger, Config, ApiClient
-  console.log('[DI] Setup slice registered');
 }
 
 export default defineNuxtPlugin(() => {
@@ -200,7 +197,7 @@ export default defineNuxtPlugin(() => {
 
 ### Gateway Interface (Domain Layer)
 
-The gateway interface defines what operations are available. It knows nothing about HTTP or databases:
+The gateway interface defines what operations are available. It knows nothing about HTTP:
 
 ```typescript [slices/user/domain/user.gateway.ts]
 import type {
@@ -225,8 +222,8 @@ export interface IUserData {
   id: string;
   email: string;
   name: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ICreateUserData {
@@ -240,12 +237,24 @@ export interface IUpdateUserData {
 }
 ```
 
-### Real API Gateway (Data Layer)
+::: tip
+Date-time fields arrive from the SDK as ISO strings (`format: date-time` maps to `string`). Keep them as strings in domain types and convert at the point of display.
+:::
 
-The concrete implementation uses `$fetch` or the generated API SDK:
+### Real Gateway (Data Layer)
+
+The concrete implementation wraps the generated SDK. It is the only file in the slice that imports from `#api`:
 
 ```typescript [slices/user/data/user.gateway.ts]
 import { injectable } from 'inversify';
+import {
+  getUsers,
+  getUser,
+  createUser,
+  updateUser,
+  deleteUser,
+  type UserDto,
+} from '#api';
 import type { IUserGateway } from '../domain/user.gateway';
 import type {
   IUserData,
@@ -253,46 +262,47 @@ import type {
   IUpdateUserData,
 } from '../domain/user.types';
 
+function toDomain(dto: UserDto): IUserData {
+  return {
+    id: dto.id,
+    email: dto.email,
+    name: dto.name,
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
+  };
+}
+
 @injectable()
 export class UserGateway implements IUserGateway {
-  private readonly baseUrl = '/api/users';
-
   async findAll(): Promise<IUserData[]> {
-    return await $fetch<IUserData[]>(this.baseUrl);
+    const { data } = await getUsers();
+    return (data?.data ?? []).map(toDomain);
   }
 
   async findById(id: string): Promise<IUserData | null> {
-    try {
-      return await $fetch<IUserData>(`${this.baseUrl}/${id}`);
-    } catch (error: any) {
-      if (error.statusCode === 404) return null;
-      throw error;
-    }
+    const { data } = await getUser({ path: { id } });
+    return data ? toDomain(data) : null;
   }
 
-  async create(data: ICreateUserData): Promise<IUserData> {
-    return await $fetch<IUserData>(this.baseUrl, {
-      method: 'POST',
-      body: data,
-    });
+  async create(input: ICreateUserData): Promise<IUserData> {
+    const { data } = await createUser({ body: input });
+    return toDomain(data!);
   }
 
-  async update(id: string, data: IUpdateUserData): Promise<IUserData> {
-    return await $fetch<IUserData>(`${this.baseUrl}/${id}`, {
-      method: 'PATCH',
-      body: data,
-    });
+  async update(id: string, input: IUpdateUserData): Promise<IUserData> {
+    const { data } = await updateUser({ path: { id }, body: input });
+    return toDomain(data!);
   }
 
   async delete(id: string): Promise<void> {
-    await $fetch(`${this.baseUrl}/${id}`, { method: 'DELETE' });
+    await deleteUser({ path: { id } });
   }
 }
 ```
 
 ### Mock Gateway
 
-For development and testing, a mock implementation with simulated delays:
+For development and tests, an in-memory implementation with simulated delays:
 
 ```typescript [slices/user/data/mock.gateway.ts]
 import { injectable } from 'inversify';
@@ -310,15 +320,15 @@ export class MockUserGateway implements IUserGateway {
       id: '1',
       email: 'john@example.com',
       name: 'John Doe',
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-01-01'),
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
     },
     {
       id: '2',
       email: 'jane@example.com',
       name: 'Jane Smith',
-      createdAt: new Date('2024-01-02'),
-      updatedAt: new Date('2024-01-02'),
+      createdAt: '2024-01-02T00:00:00.000Z',
+      updatedAt: '2024-01-02T00:00:00.000Z',
     },
   ];
 
@@ -338,11 +348,12 @@ export class MockUserGateway implements IUserGateway {
 
   async create(data: ICreateUserData): Promise<IUserData> {
     await this.delay(300);
+    const now = new Date().toISOString();
     const newUser: IUserData = {
       id: String(Date.now()),
       ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
     this.users.push(newUser);
     return newUser;
@@ -355,7 +366,7 @@ export class MockUserGateway implements IUserGateway {
     this.users[index] = {
       ...this.users[index],
       ...data,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
     return this.users[index];
   }
@@ -367,9 +378,9 @@ export class MockUserGateway implements IUserGateway {
 }
 ```
 
-### Domain Service
+### Domain Service (Optional)
 
-The service contains business logic and depends on the gateway interface via `@inject`:
+Add a client-side service only when there is real policy to hold: normalization rules, decisions that must not live in a component, logic you want to unit-test against a mocked gateway. The service depends on the gateway interface via `@inject`. A slice with no such policy skips this file and the store calls the gateway directly.
 
 ```typescript [slices/user/domain/user.service.ts]
 import { injectable, inject } from 'inversify';
@@ -428,7 +439,6 @@ Each slice registers its own bindings via a plugin:
 
 ```typescript [slices/user/plugins/di.ts]
 import { container, TYPES } from '#di';
-import { UserService } from '../domain/user.service';
 import type { IUserGateway } from '../domain/user.gateway';
 import { UserGateway } from '../data/user.gateway';
 import { MockUserGateway } from '../data/mock.gateway';
@@ -441,12 +451,8 @@ export function registerUserDI(useMocks: boolean = false): void {
     .to(useMocks ? MockUserGateway : UserGateway)
     .inSingletonScope();
 
-  container
-    .bind<UserService>(TYPES.UserService)
-    .to(UserService)
-    .inSingletonScope();
-
-  console.log(`[DI] User slice registered (mocks: ${useMocks})`);
+  // Only when the slice has a domain service:
+  // container.bind<UserService>(TYPES.UserService).to(UserService).inSingletonScope();
 }
 ```
 
@@ -466,15 +472,13 @@ export default defineNuxtPlugin(() => {
   registerUserDI(useMocks);
   // registerTaskDI(useMocks);
 
-  console.log('[DI] All slices registered');
-
   return { provide: { container } };
 });
 ```
 
 ### Environment Configuration
 
-Toggle mocks via environment variables:
+Toggle mocks via the public runtime variable:
 
 ```bash [.env.development]
 NUXT_PUBLIC_USE_MOCKS=true
@@ -484,86 +488,66 @@ NUXT_PUBLIC_USE_MOCKS=true
 NUXT_PUBLIC_USE_MOCKS=false
 ```
 
-## Step 4: Composables Using DI
+## Step 4: The Store Resolves the Gateway
 
-The composable resolves the service from the container and provides a reactive API:
+State stays in Pinia, exactly as in a slice without DI. The only difference is where the store gets its data: from the container instead of importing `#api` directly. Resolve inside actions, not at module scope, so the store does not touch the container before the plugin has populated it.
 
-```typescript [slices/user/composables/useUser.ts]
+```typescript [slices/user/stores/user.ts]
 import { container, TYPES } from '#di';
-import type { UserService } from '../domain/user.service';
-import type {
-  IUserData,
-  ICreateUserData,
-  IUpdateUserData,
-} from '../domain/user.types';
+import type { IUserGateway } from '../domain/user.gateway';
+import type { IUserData, ICreateUserData } from '../domain/user.types';
 
-export function useUser() {
-  const userService = container.get<UserService>(TYPES.UserService);
-
+export const useUserStore = defineStore('user', () => {
   const users = ref<IUserData[]>([]);
-  const currentUser = ref<IUserData | null>(null);
   const loading = ref(false);
   const error = ref<Error | null>(null);
   const userCount = computed(() => users.value.length);
+
+  const gateway = () => container.get<IUserGateway>(TYPES.UserGateway);
 
   async function fetchUsers(): Promise<void> {
     loading.value = true;
     error.value = null;
     try {
-      users.value = await userService.getUsers();
+      users.value = await gateway().findAll();
     } catch (e) {
       error.value = e instanceof Error ? e : new Error('Failed');
+      throw e;
     } finally {
       loading.value = false;
     }
   }
 
-  async function createUser(
-    data: ICreateUserData
-  ): Promise<IUserData | null> {
-    loading.value = true;
+  async function createUser(data: ICreateUserData): Promise<IUserData> {
+    const created = await gateway().create(data);
+    users.value.push(created);
+    return created;
+  }
+
+  function clearError() {
     error.value = null;
-    try {
-      const newUser = await userService.createUser(data);
-      users.value.push(newUser);
-      return newUser;
-    } catch (e) {
-      error.value = e instanceof Error ? e : new Error('Failed');
-      return null;
-    } finally {
-      loading.value = false;
-    }
   }
 
-  return {
-    users,
-    currentUser,
-    loading,
-    error,
-    userCount,
-    fetchUsers,
-    createUser,
-    clearError: () => {
-      error.value = null;
-    },
-  };
-}
+  return { users, loading, error, userCount, fetchUsers, createUser, clearError };
+});
 ```
+
+::: warning
+Do not hold list state in a composable. A composable returns fresh refs on every call, so two components calling `useUser()` would each own a separate copy of the list. Shared state is a store; see [State Management](/frontend/state-management).
+:::
 
 ## Step 5: Use in Components
 
+The Provider is unchanged by DI. It loads through `useAsyncData`, which is SSR-safe and deduplicates by key, rather than through `onMounted`:
+
 ```vue [slices/user/components/userList/Provider.vue]
 <script setup lang="ts">
-const {
-  users,
-  loading,
-  error,
-  userCount,
-  fetchUsers,
-  clearError,
-} = useUser();
+const store = useUserStore();
+const { users, loading, error, userCount } = storeToRefs(store);
 
-onMounted(() => fetchUsers());
+// `.then(() => true)`: useAsyncData treats an undefined result as "nothing cached"
+// and would re-run the request on every hydration.
+await useAsyncData('users', () => store.fetchUsers().then(() => true));
 </script>
 
 <template>
@@ -571,7 +555,7 @@ onMounted(() => fetchUsers());
     <h2>Users ({{ userCount }})</h2>
     <div v-if="error" class="text-destructive">
       {{ error.message }}
-      <Button variant="ghost" size="sm" @click="clearError">
+      <Button variant="ghost" size="sm" @click="store.clearError">
         Dismiss
       </Button>
     </div>
@@ -588,7 +572,7 @@ onMounted(() => fetchUsers());
 
 ## Testing with DI
 
-The biggest payoff of DI is testability. You create a fresh container per test and bind mock implementations:
+The payoff of DI is testability. You create a fresh container per test and bind a mock gateway. The example tests the optional domain service; a store is tested the same way, with `setActivePinia(createPinia())` before `useUserStore()`.
 
 ```typescript [slices/user/domain/user.service.spec.ts]
 import 'reflect-metadata';
@@ -630,8 +614,8 @@ describe('UserService', () => {
       id: '1',
       email: 'john@example.com',
       name: 'John',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
     });
 
     await userService.createUser({
@@ -649,6 +633,6 @@ describe('UserService', () => {
 
 ## What's Next?
 
-- [API Integration](/frontend/api-integration) -- Use the generated SDK inside gateway implementations
-- [State Management](/frontend/state-management) -- Combine DI services with Pinia stores
-- [Error Handling](/frontend/error-handling) -- Handle errors from DI services consistently
+- [API Integration](/frontend/api-integration) -- The generated SDK that the real gateway wraps
+- [State Management](/frontend/state-management) -- Stores are the same with or without DI
+- [Error Handling](/frontend/error-handling) -- Handle errors from gateways consistently

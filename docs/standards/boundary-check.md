@@ -84,20 +84,21 @@ A cycle is the point where "which module depends on which" stops having an answe
 
 ### 3. Layers inside a slice
 
-A controller calls a **service**; a service depends on the gateway **interface** it declares. Neither reaches into `data/`. Three sub-checks:
+A controller calls the slice's **service**, or its **abstract gateway** when the slice has no business logic; a service depends on the gateway **interface** it declares. Neither reaches into `data/`. Two sub-checks:
 
 | Sub-check | Sees | Catches |
 |-----------|------|---------|
 | `no-data-layer-in-controller` | paths | `import { UserGateway } from './data/user.gateway'` |
 | `no-data-layer-in-domain` | paths | a service importing a mapper or a concrete gateway |
-| `no-gateway-name-in-controller` | names | `import { IUserGateway } from './domain'` — through the barrel |
 
-The third sub-check reads import statements rather than the module graph, because the barrel form is invisible to a path-based rule: `controller -> ./domain` is the same edge whether it pulls in the service or the gateway. Only the imported name tells them apart.
+Both are path rules: `data/` is a folder, so a concrete gateway or mapper imported from presentation or domain is an edge the module graph can see.
 
 ```
-error no-gateway-name-in-controller: src/slices/user/user/user.controller.ts -> ./domain (IUserGateway)
-  A controller may not import a gateway — call the owning slice's service instead
+error no-data-layer-in-controller: src/slices/user/user/user.controller.ts -> ./data/user.gateway.ts
+  A controller may not import from data/ — inject the service or the abstract gateway from domain/
 ```
+
+Importing the abstract `IUserGateway` through the domain barrel is allowed; it is the DI token, not the implementation. What the check cannot see is a business rule written inline in a controller that holds a gateway. That stays a review question: the moment a controller decides something, the decision moves into a service.
 
 See [Layers](/architecture/layers), [Dependency Flow](/architecture/dependency-flow) and [Controllers](/backend/controllers) for the rules themselves.
 
