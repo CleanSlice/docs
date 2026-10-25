@@ -97,10 +97,10 @@ export class UserController {
     summary: 'Get user by ID',
     operationId: 'getUserById',
   })
-  @ApiParam({ name: 'id', description: 'User unique identifier', example: 'usr_123abc' })
+  @ApiParam({ name: 'id', description: 'User primary ID', example: 'user-calm-rivers-k8m4p2d7n9x3' })
   @ApiSingleResponse(UserDto)
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getUser(@Param('id') id: string): Promise<UserDto> {
+  async getUser(@Param('id', new EntityIdPipe(USER_ID_PREFIX)) id: string): Promise<UserDto> {
     return this.userService.getUserById(id);
   }
 
@@ -123,7 +123,7 @@ export class UserController {
   @ApiSingleResponse(UserDto)
   @ApiResponse({ status: 404, description: 'User not found' })
   async updateUser(
-    @Param('id') id: string,
+    @Param('id', new EntityIdPipe(USER_ID_PREFIX)) id: string,
     @Body() data: UpdateUserDto,
   ): Promise<UserDto> {
     return this.userService.updateUser(id, data);
@@ -138,7 +138,7 @@ export class UserController {
   @ApiParam({ name: 'id', description: 'User unique identifier' })
   @ApiResponse({ status: 204, description: 'User deleted' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async deleteUser(@Param('id') id: string): Promise<void> {
+  async deleteUser(@Param('id', new EntityIdPipe(USER_ID_PREFIX)) id: string): Promise<void> {
     return this.userService.deleteUser(id);
   }
 }

@@ -37,7 +37,6 @@ Every mapper has up to three methods:
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import DB, { Prisma } from '@prisma/client';
-import { v4 as uuid } from 'uuid';
 import { IUserData, ICreateUserData, IUpdateUserData, RoleTypes } from '../domain';
 
 // Type aliases for Prisma types
@@ -68,10 +67,9 @@ export class UserMapper {
     };
   }
 
-  toCreate(data: ICreateUserData): IUserCreateRequest {
-    const id = `user-${uuid()}`;
+  /** Everything but the id: the gateway mints that with formatId(USER_ID_PREFIX). */
+  toCreate(data: ICreateUserData): Omit<IUserCreateRequest, 'id'> {
     return {
-      id,
       name: data.name,
       email: data.email,
       roles: data.roles,
@@ -208,20 +206,17 @@ toCreate(data: ICreateUserData): Prisma.UserCreateInput {
 
 ### ID Generation
 
-Generate prefixed IDs in the `toCreate` method:
+Mappers do **not** generate IDs. The gateway mints the primary key inside the write with `formatId(prefix)` and repeats the write on a collision with `withIdRetry`:
 
-```typescript
-import { v4 as uuid } from 'uuid';
-
-toCreate(data: ICreateUserData): Prisma.UserCreateInput {
-  return {
-    id: `user-${uuid()}`,
-    ...data,
-  };
-}
+```typescript [data/user.gateway.ts]
+const user = await withIdRetry(() =>
+  this.prisma.user.create({
+    data: { id: formatId(USER_ID_PREFIX), ...this.mapper.toCreate(data) },
+  }),
+);
 ```
 
-Common prefixes: `user-`, `team-`, `file-`, `api-key-`.
+The format, the prefix rules and the retry rules are the [Identifiers](/standards/identifiers) standard. Never `uuid()`, `cuid()` or a Prisma `@default` for a primary key.
 
 ## Cross-Mapper Composition
 
@@ -231,8 +226,8 @@ When an entity includes related data from another slice, inject that slice's map
 import { Injectable } from '@nestjs/common';
 import DB, { Prisma } from '@prisma/client';
 import { IApiKeyData, ICreateApiKeyData } from '../domain';
+import { randomBytes } from 'node:crypto';
 import { TeamMapper } from '#/user/team/data/team.mapper';
-import { v4 as uuid } from 'uuid';
 
 export type IApiKeyResponse = DB.ApiKey & {
   team: DB.Team;
@@ -254,12 +249,12 @@ export class ApiKeyMapper {
     };
   }
 
-  toCreate(data: ICreateApiKeyData): Prisma.ApiKeyUncheckedCreateInput {
+  /** The id is minted by the gateway (formatId(API_KEY_ID_PREFIX)); the secret is not an id. */
+  toCreate(data: ICreateApiKeyData): Omit<Prisma.ApiKeyUncheckedCreateInput, 'id'> {
     return {
-      id: `api-key-${uuid()}`,
       teamId: data.teamId,
       name: data.name,
-      secret: `secret-${uuid()}`,
+      secret: `secret-${randomBytes(32).toString('base64url')}`,
     };
   }
 }
@@ -282,8 +277,9 @@ async getApiKey(id: string): Promise<IApiKeyData | null> {
 ```typescript [data/user.gateway.ts]
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '#/setup/prisma';
+import { formatId, withIdRetry } from '#/setup/id';
 import { IUserGateway } from '../domain/user.gateway';
-import { IUserData, ICreateUserData, IUpdateUserData } from '../domain/user.types';
+import { IUserData, ICreateUserData, IUpdateUserData, USER_ID_PREFIX } from '../domain/user.types';
 import { UserMapper } from './user.mapper';
 
 @Injectable()
@@ -301,9 +297,11 @@ export class UserGateway extends IUserGateway {
   }
 
   async createUser(data: ICreateUserData): Promise<IUserData> {
-    const result = await this.prisma.user.create({
-      data: this.mapper.toCreate(data),
-    });
+    const result = await withIdRetry(() =>
+      this.prisma.user.create({
+        data: { id: formatId(USER_ID_PREFIX), ...this.mapper.toCreate(data) },
+      }),
+    );
     return this.mapper.toData(result);
   }
 

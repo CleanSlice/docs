@@ -74,6 +74,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             { text: 'Database', link: '/backend/database' },
             { text: 'API Documentation', link: '/backend/api-docs' },
             { text: 'Slice Structure', link: '/backend/slice-structure' },
+            { text: 'Email', link: '/backend/email' },
           ],
         },
         {
@@ -116,6 +117,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           items: [
             { text: 'Bun', link: '/standards/bun' },
             { text: 'TypeScript', link: '/standards/typescript' },
+            { text: 'Identifiers', link: '/standards/identifiers' },
             { text: 'NestJS', link: '/standards/nestjs' },
             { text: 'Nuxt', link: '/standards/nuxt' },
             { text: 'Component Logic', link: '/standards/component-logic' },

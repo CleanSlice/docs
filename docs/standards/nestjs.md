@@ -127,6 +127,8 @@ export class UserGateway extends IUserGateway {
 Prisma IS the repository layer. You don't need a separate repository class — the gateway talks to Prisma directly. The gateway provides the abstraction that makes your domain testable.
 :::
 
+The gateway also mints every primary key: `formatId(prefix)` inside `withIdRetry`, never a Prisma `@default`. See [Identifiers](/standards/identifiers).
+
 ## DTO Conventions
 
 DTOs use `class-validator` for validation and `@nestjs/swagger` decorators for documentation:

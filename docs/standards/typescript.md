@@ -177,7 +177,7 @@ Organize imports in this order, separated by blank lines:
 import { Injectable } from '@nestjs/common';
 
 // 2. External packages
-import { v4 as uuid } from 'uuid';
+import * as bcrypt from 'bcrypt';
 
 // 3. Slice aliases (cross-slice imports)
 import { PrismaService } from '#prisma';

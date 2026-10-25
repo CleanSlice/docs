@@ -43,7 +43,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IUserData, RoleTypes } from '../domain';
 
 export class UserDto implements IUserData {
-  @ApiProperty({ example: 'usr_123abc' })
+  @ApiProperty({ example: 'user-calm-rivers-k8m4p2d7n9x3', pattern: idPattern(USER_ID_PREFIX) })
   id: string;
 
   @ApiProperty({ example: 'john@example.com' })

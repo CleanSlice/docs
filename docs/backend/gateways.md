@@ -224,6 +224,7 @@ export class UserGateway extends IUserGateway {
         where,
         take: perPage,
         skip: (currentPage - 1) * perPage,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       }),
       this.prisma.user.count({ where }),
     ]);
@@ -245,9 +246,12 @@ export class UserGateway extends IUserGateway {
   }
 
   async createUser(data: ICreateUserData): Promise<IUserData> {
-    const result = await this.prisma.user.create({
-      data: this.map.toCreate(data),
-    });
+    // The gateway mints the primary key; see /standards/identifiers
+    const result = await withIdRetry(() =>
+      this.prisma.user.create({
+        data: { id: formatId(USER_ID_PREFIX), ...this.map.toCreate(data) },
+      }),
+    );
     return this.map.toData(result);
   }
 
