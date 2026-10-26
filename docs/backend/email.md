@@ -52,7 +52,7 @@ api/src/slices/setup/mail/
 ├── mail.module.ts                  # @Global; binds IMailGateway -> SmtpMailGateway
 ├── index.ts
 ├── domain/
-│   ├── mail.types.ts               # IMailMessage, IMailResult
+│   ├── mail.types.ts               # IMailMessage, IOutboundMail, IMailResult
 │   ├── mail.gateway.ts             # abstract IMailGateway
 │   ├── mail.service.ts             # MailService
 │   └── mail.errors.ts              # MailNotConfiguredError, MailDeliveryError
@@ -86,6 +86,11 @@ export interface IMailMessage {
   bcc?: string | string[];
 }
 
+/** What reaches the gateway: the service has already resolved `from`. */
+export interface IOutboundMail extends IMailMessage {
+  from: string;
+}
+
 export interface IMailResult {
   messageId: string;
   accepted: string[];
@@ -95,7 +100,7 @@ export interface IMailResult {
 
 ```typescript [domain/mail.gateway.ts]
 export abstract class IMailGateway {
-  abstract send(message: IMailMessage): Promise<IMailResult>;
+  abstract send(message: IOutboundMail): Promise<IMailResult>;
 }
 ```
 
@@ -152,7 +157,7 @@ The SMTP repository is a black box: env vars and `nodemailer`, nothing from `dom
 ```typescript [data/repositories/smtp/smtp.repository.ts]
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createTransport, Transporter } from 'nodemailer';
+import { createTransport, SMTPSentMessageInfo, Transporter } from 'nodemailer';
 import { ISmtpConfig, ISmtpMessage, ISmtpSendResult } from './smtp.types';
 
 const toAddress = (entry: string | { address: string }): string =>
@@ -160,7 +165,7 @@ const toAddress = (entry: string | { address: string }): string =>
 
 @Injectable()
 export class SmtpRepository {
-  private readonly transporter: Transporter;
+  private readonly transporter: Transporter<SMTPSentMessageInfo>;
 
   constructor(config: ConfigService) {
     const smtp = SmtpRepository.readConfig(config);
@@ -212,7 +217,7 @@ export class SmtpMailGateway extends IMailGateway {
     super();
   }
 
-  async send(message: IMailMessage): Promise<IMailResult> {
+  async send(message: IOutboundMail): Promise<IMailResult> {
     try {
       const result = await this.smtp.send(this.mapper.toSmtp(message));
       return this.mapper.toResult(result);
