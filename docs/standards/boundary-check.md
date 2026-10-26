@@ -109,14 +109,14 @@ See [Layers](/architecture/layers), [Dependency Flow](/architecture/dependency-f
 | starter kit | 2 | 64 | ~0.30 s |
 | agentfy2 | 8 | 348 | ~0.55 s |
 
-End to end, `bun run dev` in the starter kit — docker, prisma-import, migrate, a full nest compile, up to "Nest application successfully started":
+End to end, `bun run dev` in the starter kit — docker, migrate, a full nest compile, up to "Nest application successfully started":
 
 | | run 1 | run 2 |
 |---|---|---|
 | without the check | 5.66 s | 5.43 s |
 | with the check | 6.08 s | 6.08 s |
 
-Half a second on a start that already waits for docker, prisma-import and a nest compile. There is deliberately no light mode: a check you can skip is a check that gets skipped.
+Half a second on a start that already waits for docker, the migrations and a nest compile. There is deliberately no light mode: a check you can skip is a check that gets skipped.
 
 ## What It Does Not Catch
 

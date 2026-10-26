@@ -89,12 +89,13 @@ Byte 0 → `adjectives[0]` = `afraid`; bytes 1, 2 → 258 & 511 = 258 → `nouns
 The column is a plain string primary key. No `@default(uuid())`, no `@default(cuid())`, no `autoincrement()`:
 
 ```prisma [slices/user/user.prisma]
+// use prisma-8
 model User {
   id        String   @id        // minted by the gateway: formatId(USER_ID_PREFIX)
   email     String   @unique
   name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt TimestamptzJsDate(3) @default(now())
+  updatedAt temporal.timestamptzJsDate(3, onCreate: now, onUpdate: now)
 }
 ```
 
@@ -123,10 +124,9 @@ export class UserGateway extends IUserGateway {
 
   async createUser(data: ICreateUserData): Promise<IUserData> {
     const createData = this.mapper.toCreate(data);
-    const user = await withIdRetry(() =>
-      this.prisma.user.create({
-        data: { id: formatId(USER_ID_PREFIX), ...createData },
-      }),
+    const user = await withIdRetry(
+      () => this.prisma.db.public.User.create({ id: formatId(USER_ID_PREFIX), ...createData }),
+      this.prisma.inTransaction,
     );
     return this.mapper.toData(user);
   }
@@ -134,11 +134,15 @@ export class UserGateway extends IUserGateway {
 ```
 
 ```typescript [slices/user/data/user.mapper.ts]
+import type { PrismaCreate } from '#setup/prisma';
+
 /** Everything but the id: the gateway mints that with formatId(USER_ID_PREFIX). */
-toCreate(data: ICreateUserData) {
+toCreate(data: ICreateUserData): Omit<PrismaCreate<'User'>, 'id'> {
   return {
     email: data.email.toLowerCase().trim(),
     name: data.name.trim(),
+    password: data.password,
+    roles: [],
   };
 }
 ```
@@ -147,9 +151,9 @@ toCreate(data: ICreateUserData) {
 
 ## Retry
 
-`withIdRetry(work, insideTransaction = false)` repeats `work` at most **5** times (`ID_MAX_ATTEMPTS`) and only when the failure is a unique violation on exactly the `id` column, which Prisma 6 surfaces as `P2002` with `meta.target` of `['id']`. Any other error is rethrown on the first attempt: a conflict on `email`, a foreign-key failure, a timeout.
+`withIdRetry(work, insideTransaction = false)` repeats `work` at most **5** times (`ID_MAX_ATTEMPTS`) and only when the failure is a unique violation on exactly the `id` column, read off PostgreSQL's own error (SQLSTATE `23505` on the `id` key) by `isUniqueViolation(error, ['id'])` from `#setup/prisma`. Any other error is rethrown on the first attempt: a conflict on `email`, a foreign-key failure, a timeout.
 
-- **Inside `$transaction`, pass `insideTransaction = true`.** A failed statement leaves a PostgreSQL transaction aborted; the owner of the transaction repeats the whole unit of work, not one statement of it.
+- **Inside `prisma.transaction(...)`, pass `this.prisma.inTransaction`.** A failed statement leaves a PostgreSQL transaction aborted; the owner of the transaction repeats the whole unit of work, not one statement of it.
 - **External effects stay outside `work`.** The callback is a database write, nothing else. Sending an email or calling a provider inside it would run up to five times.
 - **Other uniqueness keeps its meaning.** A duplicate email is a domain error for the service to translate, not a reason to mint again.
 

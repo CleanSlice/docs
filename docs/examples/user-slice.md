@@ -6,29 +6,33 @@ This walkthrough builds a complete user management feature from scratch — back
 
 - **Backend:** A `user` slice with controller, gateway, mapper, DTOs, and domain types
 - **Frontend:** A `user` slice with pages, components, a Pinia store, and i18n
-- **Database:** A Prisma schema for the `User` model
+- **Database:** A Prisma 8 model for `User`, owned by the slice
 
-## Step 1: Database Schema
+## Step 1: Database Model
 
-Add the User model to your Prisma schema:
+Add the User model at the slice root. `prisma.config.ts` picks it up by its glob (`src/slices/**/*.prisma`); there is no schema to assemble.
 
 ```prisma
-// api/prisma/schema.prisma
+// use prisma-8
+// api/src/slices/user/user.prisma
 model User {
   id        String   @id        // minted by the gateway: formatId(USER_ID_PREFIX)
   email     String   @unique
   name      String
   status    String   @default("active")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt TimestamptzJsDate(3) @default(now())
+  updatedAt temporal.timestamptzJsDate(3, onCreate: now, onUpdate: now)
 }
 ```
 
-Run the migration:
+Plan the migration, point the deploy ref at it and apply it:
 
 ```bash
 cd api
-bunx prisma migrate dev --name add-user
+bun run prisma:emit
+bun run db:plan -- --name add_user
+bunx prisma migration ref set deploy <hash>   # the "to" hash the plan printed
+bun run db:deploy
 ```
 
 ## Step 2: Backend — Domain Layer
@@ -107,12 +111,12 @@ export { UserStatusTypes, USER_ID_PREFIX } from './user.types';
 ```typescript
 // api/src/slices/user/data/user.mapper.ts
 import { Injectable } from '@nestjs/common';
-import { User as PrismaUser } from '@prisma/client';
+import type { PrismaCreate, PrismaRow, PrismaUpdate } from '#prisma';
 import { IUserData, ICreateUserData, IUpdateUserData, UserStatusTypes } from '../domain';
 
 @Injectable()
 export class UserMapper {
-  toDomain(user: PrismaUser): IUserData {
+  toDomain(user: PrismaRow<'User'>): IUserData {
     return {
       id: user.id,
       email: user.email,
@@ -124,19 +128,19 @@ export class UserMapper {
   }
 
   /** Everything but the id: the gateway mints that with formatId(USER_ID_PREFIX). */
-  toCreate(data: ICreateUserData): { email: string; name: string } {
+  toCreate(data: ICreateUserData): Omit<PrismaCreate<'User'>, 'id'> {
     return {
       email: data.email.toLowerCase().trim(),
       name: data.name.trim(),
     };
   }
 
-  toUpdate(data: IUpdateUserData): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-    if (data.email !== undefined) result.email = data.email.toLowerCase().trim();
-    if (data.name !== undefined) result.name = data.name.trim();
-    if (data.status !== undefined) result.status = data.status;
-    return result;
+  toUpdate(data: IUpdateUserData): PrismaUpdate<'User'> {
+    return {
+      ...(data.email !== undefined && { email: data.email.toLowerCase().trim() }),
+      ...(data.name !== undefined && { name: data.name.trim() }),
+      ...(data.status !== undefined && { status: data.status }),
+    };
   }
 }
 ```
@@ -146,12 +150,15 @@ export class UserMapper {
 ```typescript
 // api/src/slices/user/data/user.gateway.ts
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '#prisma';
 import { formatId, withIdRetry } from '#setup/id';
 import { IUserGateway } from '../domain/user.gateway';
 import { IUserData, ICreateUserData, IUpdateUserData, IUserFilter, USER_ID_PREFIX } from '../domain';
+import { UserNotFoundError } from '../domain/user.errors'; // a BaseError with 404, see /backend/error-handling
 import { UserMapper } from './user.mapper';
+
+/** `%`, `_` and `\` are LIKE wildcards; escape them so a search matches them literally. */
+const likeLiteral = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
 
 @Injectable()
 export class UserGateway extends IUserGateway {
@@ -162,54 +169,57 @@ export class UserGateway extends IUserGateway {
     super();
   }
 
+  private get users() {
+    return this.prisma.db.public.User;
+  }
+
   async findAll(filter?: IUserFilter): Promise<IUserData[]> {
-    const where: Prisma.UserWhereInput = {};
+    let users = this.users;
 
     if (filter?.search) {
-      where.OR = [
-        { name: { contains: filter.search, mode: 'insensitive' } },
-        { email: { contains: filter.search, mode: 'insensitive' } },
-      ];
+      const pattern = `%${likeLiteral(filter.search)}%`;
+      users = users.where((u) => this.prisma.or(u.name.ilike(pattern), u.email.ilike(pattern)));
     }
     if (filter?.status) {
-      where.status = filter.status;
+      users = users.where({ status: filter.status });
     }
 
-    const users = await this.prisma.user.findMany({
-      where,
-      skip: filter?.page && filter?.perPage ? (filter.page - 1) * filter.perPage : undefined,
-      take: filter?.perPage,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], // tie-break on the primary key
-    });
+    let page = users.orderBy([(u) => u.createdAt.desc(), (u) => u.id.desc()]); // tie-break on the primary key
+    if (filter?.page && filter?.perPage) page = page.offset((filter.page - 1) * filter.perPage);
+    if (filter?.perPage) page = page.limit(filter.perPage);
 
-    return users.map((u) => this.mapper.toDomain(u));
+    const rows = await page.all();
+    return rows.map((u) => this.mapper.toDomain(u));
   }
 
   async findById(id: string): Promise<IUserData | null> {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.users.first({ id });
     return user ? this.mapper.toDomain(user) : null;
   }
 
   async create(data: ICreateUserData): Promise<IUserData> {
     // Mint inside the write; a primary-key collision repeats the whole write.
-    const user = await withIdRetry(() =>
-      this.prisma.user.create({
-        data: { id: formatId(USER_ID_PREFIX), ...this.mapper.toCreate(data) },
-      }),
+    const createData = this.mapper.toCreate(data);
+    const user = await withIdRetry(
+      () => this.users.create({ id: formatId(USER_ID_PREFIX), ...createData }),
+      this.prisma.inTransaction,
     );
     return this.mapper.toDomain(user);
   }
 
   async update(id: string, data: IUpdateUserData): Promise<IUserData> {
-    const user = await this.prisma.user.update({
-      where: { id },
-      data: this.mapper.toUpdate(data),
-    });
+    const changes = this.mapper.toUpdate(data);
+    // Nothing to write is a read: an empty update answers null.
+    const user =
+      Object.keys(changes).length === 0
+        ? await this.users.first({ id })
+        : await this.users.where({ id }).update(changes);
+    if (!user) throw new UserNotFoundError(id); // a missing row answers null
     return this.mapper.toDomain(user);
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.user.delete({ where: { id } });
+    await this.users.where({ id }).delete(); // null when the row was already gone
   }
 }
 ```

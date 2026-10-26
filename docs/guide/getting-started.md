@@ -59,33 +59,17 @@ import { IUserGateway } from '#user/domain';
 
 ### Prisma setup
 
-Install Prisma and initialize it:
+CleanSlice runs on Prisma 8. Install the pinned packages:
 
 ```bash
 cd api
-bun add @prisma/client
-bun add -d prisma
-bunx prisma init
+bun add --exact @prisma/orm-postgres@8.0.0-rc.14 pg@8.23.1
+bun add --exact --dev prisma@8.0.0-rc.19 @types/pg@8.23.1
 ```
 
-Create the Prisma setup slice at `api/src/slices/prisma/`:
+Then add the pieces the [Database](/backend/database) page describes: `prisma.config.ts` (it globs `src/slices/**/*.prisma`), the `postinstall` / `prisma:emit` / `db:*` scripts and `overrides` in `package.json`, `scripts/migrate.mjs`, `"module": "nodenext"` in `tsconfig.json`, and `generated/` in `.gitignore`. There is no `prisma init`, no `schema.prisma` and no `prisma generate`.
 
-::: code-group
-```typescript [prisma.service.ts]
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
-@Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-  async onModuleInit() {
-    await this.$connect();
-  }
-
-  async onModuleDestroy() {
-    await this.$disconnect();
-  }
-}
-```
+Copy the Prisma setup slice (`prisma.service.ts`, `prisma.types.ts`, `prisma.errors.ts`, `prisma.module.ts`, `index.ts`) from the [starter kit](https://github.com/CleanSlice/nest-nuxt-starter-kit/tree/main/api/src/slices/setup/prisma) into `api/src/slices/setup/prisma/`. `PrismaModule` is `@Global()`:
 
 ```typescript [prisma.module.ts]
 import { Module, Global } from '@nestjs/common';
@@ -98,12 +82,6 @@ import { PrismaService } from './prisma.service';
 })
 export class PrismaModule {}
 ```
-
-```typescript [index.ts]
-export { PrismaModule } from './prisma.module';
-export { PrismaService } from './prisma.service';
-```
-:::
 
 ### Swagger setup
 
@@ -229,36 +207,68 @@ export abstract class IProjectGateway {
 }
 ```
 
+Add the model at the slice root and migrate:
+
+```prisma
+// use prisma-8
+// api/src/slices/project/project.prisma
+model Project {
+  id          String @id // minted by the gateway: formatId('project')
+  name        String
+  description String
+  createdAt   TimestamptzJsDate(3) @default(now())
+  updatedAt   temporal.timestamptzJsDate(3, onCreate: now, onUpdate: now)
+}
+```
+
+```bash
+bun run prisma:emit
+bun run db:plan -- --name project
+bunx prisma migration ref set deploy <hash>   # the "to" hash the plan printed
+bun run db:deploy
+```
+
 Implement the gateway with Prisma:
 
 ```typescript
 // api/src/slices/project/data/project.gateway.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '#prisma';
+import { formatId, withIdRetry } from '#setup/id';
 import { IProjectGateway } from '../domain/project.gateway';
 import { IProjectData, ICreateProjectData } from '../domain/project.types';
 import { ProjectMapper } from './project.mapper';
 
 @Injectable()
-export class ProjectGateway implements IProjectGateway {
+export class ProjectGateway extends IProjectGateway {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mapper: ProjectMapper,
-  ) {}
+  ) {
+    super();
+  }
+
+  private get projects() {
+    return this.prisma.db.public.Project;
+  }
 
   async create(data: ICreateProjectData): Promise<IProjectData> {
-    const project = await this.prisma.project.create({ data });
-    return this.mapper.toDomain(project);
+    const createData = this.mapper.toCreate(data);
+    const project = await withIdRetry(
+      () => this.projects.create({ id: formatId('project'), ...createData }),
+      this.prisma.inTransaction,
+    );
+    return this.mapper.toData(project);
   }
 
   async findById(id: string): Promise<IProjectData | null> {
-    const project = await this.prisma.project.findUnique({ where: { id } });
-    return project ? this.mapper.toDomain(project) : null;
+    const project = await this.projects.first({ id });
+    return project ? this.mapper.toData(project) : null;
   }
 
   async findAll(): Promise<IProjectData[]> {
-    const projects = await this.prisma.project.findMany();
-    return projects.map((p) => this.mapper.toDomain(p));
+    const projects = await this.projects.orderBy((p) => p.createdAt.desc()).all();
+    return projects.map((p) => this.mapper.toData(p));
   }
 }
 ```

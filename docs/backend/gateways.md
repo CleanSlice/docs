@@ -184,49 +184,56 @@ The implementation extends the abstract class, injects `PrismaService` and a [Ma
 
 ```typescript [data/user.gateway.ts]
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '#/setup/prisma';
+import { PrismaService } from '#setup/prisma';
+import { formatId, withIdRetry } from '#setup/id';
+import { IMetaResponse } from '#setup/response';
 import { IUserGateway, IUserFilter } from '../domain/user.gateway';
-import { IUserData, ICreateUserData, IUpdateUserData } from '../domain/user.types';
+import { IUserData, ICreateUserData, IUpdateUserData, USER_ID_PREFIX } from '../domain/user.types';
+import { UserNotFoundError } from '../domain/user.errors';
 import { UserMapper } from './user.mapper';
-import { IMetaResponse } from '#/setup/response';
+
+/** `%`, `_` and `\` are LIKE wildcards; escape them so a search matches them literally. */
+const likeLiteral = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
 
 @Injectable()
 export class UserGateway extends IUserGateway {
   constructor(
-    private prisma: PrismaService,
-    private map: UserMapper,
+    private readonly prisma: PrismaService,
+    private readonly map: UserMapper,
   ) {
     super();
   }
 
+  private get users() {
+    return this.prisma.db.public.User;
+  }
+
   async getUsers(filter?: IUserFilter): Promise<{ data: IUserData[]; meta: IMetaResponse }> {
-    const where: Prisma.UserWhereInput = {};
+    let users = this.users;
 
     if (filter?.email) {
-      where.email = { contains: filter.email, mode: 'insensitive' };
+      const email = `%${likeLiteral(filter.email)}%`;
+      users = users.where((u) => u.email.ilike(email));
     }
     if (filter?.search) {
-      where.OR = [
-        { name: { contains: filter.search } },
-        { email: { contains: filter.search } },
-      ];
+      const pattern = `%${likeLiteral(filter.search)}%`;
+      users = users.where((u) => this.prisma.or(u.name.ilike(pattern), u.email.ilike(pattern)));
     }
     if (filter?.ids) {
-      where.id = { in: filter.ids };
+      const ids = filter.ids;
+      users = users.where((u) => u.id.in(ids));
     }
 
     const perPage = filter?.perPage ?? 20;
     const currentPage = filter?.page ?? 1;
 
     const [results, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        take: perPage,
-        skip: (currentPage - 1) * perPage,
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      }),
-      this.prisma.user.count({ where }),
+      users
+        .orderBy([(u) => u.createdAt.desc(), (u) => u.id.desc()])
+        .offset((currentPage - 1) * perPage)
+        .limit(perPage)
+        .all(),
+      users.aggregate((a) => ({ n: a.count() })).then((r) => r.n),
     ]);
 
     return {
@@ -241,35 +248,34 @@ export class UserGateway extends IUserGateway {
   }
 
   async getUser(id: string): Promise<IUserData | null> {
-    const result = await this.prisma.user.findUnique({ where: { id } });
+    const result = await this.users.first({ id });
     return result ? this.map.toData(result) : null;
   }
 
   async createUser(data: ICreateUserData): Promise<IUserData> {
     // The gateway mints the primary key; see /standards/identifiers
-    const result = await withIdRetry(() =>
-      this.prisma.user.create({
-        data: { id: formatId(USER_ID_PREFIX), ...this.map.toCreate(data) },
-      }),
+    const createData = this.map.toCreate(data);
+    const result = await withIdRetry(
+      () => this.users.create({ id: formatId(USER_ID_PREFIX), ...createData }),
+      this.prisma.inTransaction,
     );
     return this.map.toData(result);
   }
 
   async updateUser(id: string, data: IUpdateUserData): Promise<IUserData> {
-    const result = await this.prisma.user.update({
-      where: { id },
-      data: this.map.toUpdate(data),
-    });
+    const changes = this.map.toUpdate(data);
+    // Nothing to write is a read: an empty update answers null.
+    const result =
+      Object.keys(changes).length === 0
+        ? await this.users.first({ id })
+        : await this.users.where({ id }).update(changes);
+    if (!result) throw new UserNotFoundError(id); // update answers null for a missing row
     return this.map.toData(result);
   }
 
   async deleteUser(id: string): Promise<boolean> {
-    try {
-      await this.prisma.user.delete({ where: { id } });
-      return true;
-    } catch {
-      return false;
-    }
+    const result = await this.users.where({ id }).delete();
+    return result !== null;
   }
 }
 ```

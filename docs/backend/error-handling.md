@@ -281,12 +281,15 @@ export class UserService {
 
 ## Throwing Errors in Gateways
 
-Gateways catch raw database/external errors and convert them to domain errors. This prevents Prisma-specific errors from leaking into the domain layer:
+Gateways catch raw database/external errors and convert them to domain errors. This prevents Prisma-specific errors from leaking into the domain layer. Prisma 8 surfaces PostgreSQL's own error (SQLSTATE); read it with the helpers from `#setup/prisma` (`isUniqueViolation`, `isForeignKeyViolation`):
 
 ```typescript [data/user.gateway.ts]
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '#/setup/prisma';
+import { PrismaService, isUniqueViolation } from '#setup/prisma';
+import { formatId } from '#setup/id';
+import { ICreateUserData, IUserData, USER_ID_PREFIX } from '../domain/user.types';
 import { UserNotFoundError } from '../domain/errors/userNotFound.error';
+import { UserAlreadyExistsError } from '../domain/errors/userExists.error';
 import { UserMapper } from './user.mapper';
 
 @Injectable()
@@ -298,17 +301,27 @@ export class UserGateway extends IUserGateway {
     super();
   }
 
-  async deleteUser(id: string): Promise<boolean> {
+  async createUser(data: ICreateUserData): Promise<IUserData> {
     try {
-      await this.prisma.user.delete({ where: { id } });
-      return true;
+      const user = await this.prisma.db.public.User.create({
+        id: formatId(USER_ID_PREFIX),
+        ...this.mapper.toCreate(data),
+      });
+      return this.mapper.toData(user);
     } catch (error) {
-      if (error.code === 'P2025') {
-        // Prisma "Record not found" error
-        throw new UserNotFoundError(id, { cause: error as Error });
+      if (isUniqueViolation(error, ['email'])) {
+        // SQLSTATE 23505 on the email key, read by the helper from #setup/prisma
+        throw new UserAlreadyExistsError(data.email, { cause: error as Error });
       }
       throw error;
     }
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    // A missing row is not an error: delete answers null
+    const user = await this.prisma.db.public.User.where({ id }).delete();
+    if (!user) throw new UserNotFoundError(id);
+    return true;
   }
 }
 ```

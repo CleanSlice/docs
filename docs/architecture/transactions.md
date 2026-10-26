@@ -12,7 +12,7 @@ Use an explicit atomic operation when several local writes must either all commi
 
 The coordinating use case owns a domain gateway contract describing the business result. Its data implementation owns the database transaction. Place coordination in a slice/group permitted to depend on every participating contract; do not introduce upward imports into lower groups. The service decides policy; persistence constraints enforce invariants at commit time.
 
-Never pass PrismaClient or Prisma.TransactionClient through domain contracts. A data adapter may compose transaction-aware persistence helpers behind permitted boundaries, but each helper must use the same transaction, not silently start an independent connection. Document which writes participate and which remain eventual. If the operation spans databases, a local transaction cannot make the whole workflow atomic; use a durable workflow and explicit compensation.
+Never pass a Prisma client or transaction handle through domain contracts; in CleanSlice the transaction is ambient (`PrismaService.transaction(...)`), so gateways called inside it need no parameter. A data adapter may compose transaction-aware persistence helpers behind permitted boundaries, but each helper must use the same transaction, not silently start an independent connection. Document which writes participate and which remain eventual. If the operation spans databases, a local transaction cannot make the whole workflow atomic; use a durable workflow and explicit compensation.
 
 ```typescript
 // domain/allocation.gateway.ts — no database types

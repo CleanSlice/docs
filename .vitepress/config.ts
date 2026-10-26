@@ -72,6 +72,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           items: [
             { text: 'Project Setup', link: '/backend/getting-started' },
             { text: 'Database', link: '/backend/database' },
+            { text: 'Upgrading from Prisma 6', link: '/backend/prisma-upgrade' },
             { text: 'API Documentation', link: '/backend/api-docs' },
             { text: 'Slice Structure', link: '/backend/slice-structure' },
             { text: 'Email', link: '/backend/email' },

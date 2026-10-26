@@ -143,20 +143,30 @@ The data layer implements the contracts defined by the domain layer. This is whe
 ```typescript
 // data/user.gateway.ts
 @Injectable()
-export class UserGateway implements IUserGateway {
+export class UserGateway extends IUserGateway {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mapper: UserMapper,
-  ) {}
+  ) {
+    super();
+  }
+
+  private get users() {
+    return this.prisma.db.public.User;
+  }
 
   async findById(id: string): Promise<IUserData | null> {
-    const user = await this.prisma.user.findUnique({ where: { id } });
-    return user ? this.mapper.toDomain(user) : null;
+    const user = await this.users.first({ id });
+    return user ? this.mapper.toData(user) : null;
   }
 
   async create(data: ICreateUserData): Promise<IUserData> {
-    const user = await this.prisma.user.create({ data });
-    return this.mapper.toDomain(user);
+    const createData = this.mapper.toCreate(data);
+    const user = await withIdRetry(
+      () => this.users.create({ id: formatId(USER_ID_PREFIX), ...createData }),
+      this.prisma.inTransaction,
+    );
+    return this.mapper.toData(user);
   }
 }
 ```
@@ -167,16 +177,23 @@ Mappers transform data between the database format and domain types:
 
 ```typescript
 // data/user.mapper.ts
+import type { PrismaCreate, PrismaRow } from '#setup/prisma';
+
 @Injectable()
 export class UserMapper {
-  toDomain(prismaUser: PrismaUser): IUserData {
+  toData(user: PrismaRow<'User'>): IUserData {
     return {
-      id: prismaUser.id,
-      email: prismaUser.email,
-      name: prismaUser.name,
-      createdAt: prismaUser.createdAt,
-      updatedAt: prismaUser.updatedAt,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
+  }
+
+  /** Everything but the id: the gateway mints that. */
+  toCreate(data: ICreateUserData): Omit<PrismaCreate<'User'>, 'id'> {
+    return { email: data.email, name: data.name, password: data.password, roles: [] };
   }
 }
 ```

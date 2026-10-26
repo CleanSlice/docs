@@ -19,7 +19,11 @@ api/
 │   ├── app.module.ts
 │   └── main.ts
 ├── prisma/
-│   └── schema.prisma
+│   └── migrations/              # Prisma 8 plans, forward only
+├── generated/prisma/            # emitted contract (gitignored)
+├── scripts/
+│   └── migrate.mjs              # the one migration entrypoint
+├── prisma.config.ts             # globs src/slices/**/*.prisma
 ├── docker-compose.yml
 ├── .env.example
 ├── .env.dev
@@ -366,7 +370,7 @@ open http://localhost:3000/api
 
 ## What's Next?
 
-- [Database](/backend/database) -- Set up Prisma with distributed schemas across slices
+- [Database](/backend/database) -- Prisma 8: slice model files, the contract, migrations
 - [API Docs](/backend/api-docs) -- Configure Swagger and OpenAPI for SDK generation
 - [Email](/backend/email) -- Send email through the mail slice; Mailpit as the local inbox
 - [Slice Structure](/backend/slice-structure) -- Understand the anatomy of a backend slice

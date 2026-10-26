@@ -8,13 +8,13 @@ In a naive architecture, the service would directly import and instantiate the d
 
 ```typescript
 // Naive approach — service depends on Prisma directly
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '#setup/prisma';
 
 class UserService {
-  private prisma = new PrismaClient();
+  constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string) {
-    return this.prisma.user.findUnique({ where: { id } });
+    return this.prisma.db.public.User.first({ id });
   }
 }
 ```
