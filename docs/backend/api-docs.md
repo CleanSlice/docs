@@ -136,7 +136,7 @@ Every property on a DTO must have an `@ApiProperty()` or `@ApiPropertyOptional()
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UserDto {
-  @ApiProperty({ example: 'usr_123abc' })
+  @ApiProperty({ example: 'user-calm-rivers-k8m4p2d7n9x3' })
   id: string;
 
   @ApiProperty({ example: 'john@example.com' })

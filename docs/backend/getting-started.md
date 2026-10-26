@@ -11,7 +11,8 @@ api/
 │   │   ├── setup/
 │   │   │   ├── prisma/
 │   │   │   ├── error/
-│   │   │   └── health/
+│   │   │   ├── health/
+│   │   │   └── mail/
 │   │   ├── user/
 │   │   ├── team/
 │   │   └── file/
@@ -45,7 +46,7 @@ nvm install    # Installs it if not available
 
 ## Docker Compose
 
-Local development uses Docker for PostgreSQL, S3-compatible storage, and Redis. Create a `docker-compose.yml` at the project root:
+Local development uses Docker for PostgreSQL, S3-compatible storage, Redis, and Mailpit, a local SMTP inbox that catches every email the API sends. Create a `docker-compose.yml` at the project root:
 
 ```yaml [docker-compose.yml]
 version: '3.8'
@@ -67,6 +68,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # Mailpit - catches every email the API sends; inbox at http://localhost:8025
+  mail-local:
+    image: axllent/mailpit:v1.31.4
+    container_name: cleanslice-mail
+    ports:
+      - '127.0.0.1:1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # Web UI
+    environment:
+      MP_MAX_MESSAGES: '500'
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
   s3-local:
     image: luofuxiang/local-s3:latest
@@ -129,6 +145,14 @@ S3_SECRET_ACCESS_KEY=local
 # AUTHENTICATION
 JWT_SECRET=your-super-secret-jwt-key-change-in-production
 JWT_EXPIRES_IN=7d
+
+# EMAIL (SMTP; locally Mailpit from docker-compose, inbox at http://localhost:8025)
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=CleanSlice <noreply@cleanslice.local>
 ```
 
 Access environment variables in any service through `ConfigService`:
@@ -159,6 +183,7 @@ import { ConfigModule } from '@nestjs/config';
 // Setup slices
 import { PrismaModule } from './slices/setup/prisma/prisma.module';
 import { HealthModule } from './slices/setup/health/health.module';
+import { MailModule } from './slices/setup/mail';
 
 // Feature slices
 import { UserModule } from './slices/user/user.module';
@@ -176,6 +201,7 @@ import { FileModule } from './slices/file/file.module';
     // Setup slices (order matters for dependencies)
     PrismaModule,
     HealthModule,
+    MailModule,
 
     // Feature slices
     UserModule,
@@ -216,7 +242,7 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
-      whitelist: true,
+      whitelist: true, // strips undeclared properties SILENTLY, see note below
       forbidNonWhitelisted: false,
     }),
   );
@@ -265,6 +291,10 @@ async function bootstrap() {
 
 bootstrap();
 ```
+
+::: warning `whitelist: true` strips silently
+A property that is not declared on the DTO is removed from the payload before the controller sees it, with no error (`forbidNonWhitelisted` is off). The symptom is a field that "never saves": the form sends it, the API answers 200, the row is unchanged. When a request body or query parameter stops working, check the DTO declaration first. Proving what a query parameter accepts is a test on the DTO through `ValidationPipe`, not on the gateway.
+:::
 
 ::: warning Interceptor order matters
 1. **ErrorHandlingInterceptor** runs first and catches all errors from downstream.
@@ -338,4 +368,5 @@ open http://localhost:3000/api
 
 - [Database](/backend/database) -- Set up Prisma with distributed schemas across slices
 - [API Docs](/backend/api-docs) -- Configure Swagger and OpenAPI for SDK generation
+- [Email](/backend/email) -- Send email through the mail slice; Mailpit as the local inbox
 - [Slice Structure](/backend/slice-structure) -- Understand the anatomy of a backend slice

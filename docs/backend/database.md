@@ -119,7 +119,7 @@ export * from './prisma.module';
 
 ## Defining Models
 
-Each slice defines its Prisma models in `.prisma` files at the **slice root** (not inside subfolders):
+Each slice defines its Prisma models in `.prisma` files at the **slice root** (not inside subfolders). The primary key is always `id String @id` with **no database default**: the gateway mints it with `formatId(prefix)` as described in [Identifiers](/standards/identifiers).
 
 ```
 slices/
@@ -148,7 +148,7 @@ Always place `.prisma` files at the root of each slice directory, not inside `da
 import { Team } from "./team"
 
 model User {
-  id        String   @id
+  id        String   @id        // minted by the gateway: formatId(USER_ID_PREFIX)
   name      String
   email     String
   roles     String[] @default([])
@@ -242,7 +242,8 @@ Inject `PrismaService` in your gateway implementations:
 ```typescript [src/slices/user/data/user.gateway.ts]
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '#/setup/prisma';
-import { IUserGateway, IUserData, ICreateUserData } from '../domain';
+import { formatId, withIdRetry } from '#/setup/id';
+import { IUserGateway, IUserData, ICreateUserData, USER_ID_PREFIX } from '../domain';
 import { UserMapper } from './user.mapper';
 
 @Injectable()
@@ -258,13 +259,17 @@ export class UserGateway implements IUserGateway {
   }
 
   async createUser(data: ICreateUserData): Promise<IUserData> {
-    const result = await this.prisma.user.create({
-      data: this.map.toCreate(data),
-    });
+    const result = await withIdRetry(() =>
+      this.prisma.user.create({
+        data: { id: formatId(USER_ID_PREFIX), ...this.map.toCreate(data) },
+      }),
+    );
     return this.map.toData(result);
   }
 }
 ```
+
+`formatId` and `withIdRetry` come from `#setup/id`; see [Identifiers](/standards/identifiers) for the format, the retry rules and validation.
 
 ::: tip
 The generated `prisma/schema.prisma` is auto-generated and will be overwritten. Edit only the per-slice `.prisma` files.
@@ -273,5 +278,6 @@ The generated `prisma/schema.prisma` is auto-generated and will be overwritten. 
 ## What's Next?
 
 - [Gateways](/backend/gateways) -- See how gateways use PrismaService for data access
+- [Identifiers](/standards/identifiers) -- The one primary ID format and how gateways mint it
 - [Mappers](/backend/mappers) -- Learn how mappers transform Prisma types to domain types
 - [Slice Structure](/backend/slice-structure) -- Understand where Prisma files fit in the slice layout

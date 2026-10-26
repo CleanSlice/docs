@@ -67,9 +67,9 @@ export default defineConfig({
 
   plugins: [
     {
-      // Use Axios as the HTTP client
+      // Use Axios as the HTTP client; the base URL is set at runtime by the
+      // slice's plugin (see below), not here
       name: '@hey-api/client-axios',
-      runtimeConfigPath: './slices/setup/api/api.config.ts',
     },
     {
       // Generate TypeScript enums
@@ -90,18 +90,31 @@ export default defineConfig({
 });
 ```
 
-### api.config.ts
+### API client plugin
 
-The client configuration sets the base URL for all API requests:
+The base URL is runtime configuration, not a build-time constant. The slice's plugin reads it from `useRuntimeConfig()` and configures the generated client once; the same plugin attaches the error interceptor (see [Error Handling](/frontend/error-handling)):
 
-```typescript [slices/setup/api/api.config.ts]
-import type { CreateClientConfig } from './data/repositories/api/client.gen';
+```typescript [slices/setup/api/plugins/api.ts]
+import { client } from '../data/repositories/api/client.gen';
 
-export const createClientConfig: CreateClientConfig = (config) => ({
-  ...config,
-  baseURL: process.env.API_URL ?? 'http://localhost:3333',
+export default defineNuxtPlugin(() => {
+  const { apiUrl } = useRuntimeConfig().public;
+
+  client.setConfig({
+    baseURL: apiUrl as string,
+  });
+
+  client.instance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      handleError(error);
+      return Promise.reject(error);
+    },
+  );
 });
 ```
+
+The default lives in the root `nuxt.config.ts` under `runtimeConfig.public.apiUrl`. There is exactly one place that knows the API origin; nothing else in the app spells the URL.
 
 ### Slice nuxt.config.ts
 
@@ -122,17 +135,13 @@ export default defineNuxtConfig({
 
 ### Environment Variables
 
-Set `API_URL` in your `.env` file:
+Override the default with Nuxt's public runtime variable. It is read at startup, so the same build runs against any backend:
 
 ```bash [.env]
-API_URL=http://localhost:3333
+NUXT_PUBLIC_API_URL=http://localhost:3333
 ```
 
-For production builds, pass it as a build argument:
-
-```bash
-API_URL=https://api.yourapp.com bun run build
-```
+In the Docker image the starter kit sets `NUXT_PUBLIC_API_URL=/api` and lets the reverse proxy route `/api` to the backend. Do not bake the origin into the bundle with `process.env` at build time; see the warning in [Getting Started](/frontend/getting-started).
 
 ## Generated SDK Structure
 

@@ -22,27 +22,26 @@ Located at `app/slices/setup/`. Each is a Nuxt layer registered in the root `nux
 
 ### Theme
 
-**Purpose:** UI component library with Tailwind CSS and shadcn-vue.
+**Purpose:** UI component library with Tailwind CSS v4 and shadcn-vue.
 
 ```
 app/slices/setup/theme/
 ├── nuxt.config.ts
-├── tailwind.config.js
-├── assets/scss/main.scss
+├── assets/css/tailwind.css     # @import tailwindcss + @theme inline token wiring
+├── assets/themes/*.css         # one theme = one file of CSS variables
 ├── components/ui/              # shadcn-vue components
-├── plugins/fonts.ts
 └── utils/cn.ts                 # className merge utility
 ```
 
 ```typescript
 // nuxt.config.ts
+import tailwindcss from '@tailwindcss/vite';
+
 export default defineNuxtConfig({
   alias: { '#theme': currentDir },
-  modules: ['@nuxtjs/tailwindcss', 'shadcn-nuxt'],
-  tailwindcss: {
-    cssPath: `${currentDir}/assets/scss/main.scss`,
-    configPath: `${currentDir}/tailwind.config.js`,
-  },
+  modules: ['shadcn-nuxt'],
+  css: [`#theme/assets/themes/${themeName}.css`, '#theme/assets/css/tailwind.css'],
+  vite: { plugins: [tailwindcss()] },
   shadcn: {
     prefix: '',
     componentDir: `${currentDir}/components/ui`,
@@ -50,7 +49,9 @@ export default defineNuxtConfig({
 });
 ```
 
-Key dependencies: `@nuxtjs/tailwindcss`, `shadcn-nuxt`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-vue-next`, `vee-validate`, `zod`
+Tailwind v4 has no `tailwind.config.js`; `components.json` at the app root names the active theme. See [UI Components](/frontend/ui-components).
+
+Key dependencies: `tailwindcss`, `@tailwindcss/vite`, `tw-animate-css`, `shadcn-nuxt`, `reka-ui`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-vue-next`
 
 ### Pinia
 
@@ -89,24 +90,25 @@ const projectStore = useProjectStore();
 
 ```
 app/slices/setup/api/
-├── nuxt.config.ts
-├── api.config.ts                   # Axios client + interceptors
-├── plugins/api.ts
+├── nuxt.config.ts                  # #api alias
+├── plugins/api.ts                  # sets baseURL from runtimeConfig + error interceptor
 └── data/repositories/api/          # Generated SDK (do not edit)
     ├── index.ts
-    ├── services.gen.ts
+    ├── sdk.gen.ts
     └── types.gen.ts
 ```
 
 ```typescript
-// nuxt.config.ts
-export default defineNuxtConfig({
-  alias: { '#api': resolve(currentDir, 'data/repositories/api') },
-  runtimeConfig: {
-    public: { apiUrl: process.env.API_URL || 'http://localhost:4000' },
-  },
+// plugins/api.ts
+import { client } from '../data/repositories/api/client.gen';
+
+export default defineNuxtPlugin(() => {
+  const { apiUrl } = useRuntimeConfig().public;
+  client.setConfig({ baseURL: apiUrl as string });
 });
 ```
+
+The default `apiUrl` lives in the root `nuxt.config.ts` under `runtimeConfig.public`; override it at runtime with `NUXT_PUBLIC_API_URL`.
 
 Generate the SDK from your running backend:
 
@@ -266,6 +268,26 @@ api/src/slices/health/
 
 Exposes `GET /health` returning `{ status: 'ok' }`.
 
+### Mail
+
+**Purpose:** The one place the API sends email from. See [Email](/backend/email) for the full slice.
+
+```
+api/src/slices/setup/mail/
+├── mail.module.ts                  # @Global; binds IMailGateway to SmtpMailGateway
+├── domain/
+│   ├── mail.types.ts               # IMailMessage, IMailResult
+│   ├── mail.gateway.ts             # abstract IMailGateway
+│   ├── mail.service.ts             # MailService: default sender, delegates
+│   └── mail.errors.ts
+└── data/
+    ├── mail.gateway.ts             # SmtpMailGateway
+    ├── mail.mapper.ts
+    └── repositories/smtp/          # nodemailer transport from SMTP_* env
+```
+
+Feature slices inject `MailService`. Locally the SMTP repository points at Mailpit from `docker-compose.yml`, so every message lands in `http://localhost:8025` instead of a real mailbox.
+
 ## Registration Order
 
 ### Frontend
@@ -306,6 +328,7 @@ Import all modules in `api/src/app.module.ts`:
     AwsModule,
     RedisModule,
     HealthModule,
+    MailModule,
     // Feature modules
     UserModule,
     ProjectModule,

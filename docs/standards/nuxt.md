@@ -141,6 +141,14 @@ export const useUserStore = defineStore('user', () => {
 Use `stores/` for state management, not `composables/`. Composables should be used for reusable logic that doesn't manage state (formatters, utilities, etc.).
 :::
 
+### SSR-safe state
+
+The starter kit runs as an SPA (`ssr: false`), but every pattern here must stay correct when a project turns SSR on. Three rules keep it that way:
+
+- **App-wide state lives in Pinia.** Pinia serializes store state into the payload and hydrates it on the client.
+- **Per-instance data that must survive hydration uses `useState` with a stable key**, for example `useState(\`user:${id}\`)` in a detail Provider. A plain `ref` created during server render is recreated empty on the client, so the request runs twice and the screen flashes. `useState` is for this case only; it is not a replacement for a store.
+- **No module-level caches or in-flight maps.** A variable at module scope is shared across every concurrent server render, so one request can read another tenant's data. Keep caches on `useNuxtApp()` or in a store.
+
 ## Page Conventions
 
 Page filenames use **plural** names (matching the URL route):

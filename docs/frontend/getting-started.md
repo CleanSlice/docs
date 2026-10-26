@@ -123,19 +123,19 @@ import { registerSlices } from './registerSlices';
 export default defineNuxtConfig({
   devtools: { enabled: false },
   extends: [...registerSlices()],
-  ssr: false,
-  vite: {
-    define: {
-      'process.env': process.env,
-      __VUE_I18N_FULL_INSTALL__: true,
-      __VUE_I18N_LEGACY_API__: false,
-      __INTLIFY_PROD_DEVTOOLS__: false,
+  ssr: false, // SPA by default; every pattern in these docs stays valid with ssr: true
+  runtimeConfig: {
+    public: {
+      apiUrl: 'http://localhost:3333', // override with NUXT_PUBLIC_API_URL
     },
   },
-  modules: ['@nuxt/image'],
-  compatibilityDate: '2024-10-04',
+  compatibilityDate: '2025-06-01',
 });
 ```
+
+::: warning
+Never pass `process.env` to Vite's `define`. It inlines every environment variable into the client bundle. Public configuration goes through `runtimeConfig.public` and `NUXT_PUBLIC_*` variables; read it with `useRuntimeConfig()`.
+:::
 
 ::: tip
 You rarely need to touch `registerSlices.ts`. To add a new feature, just create a folder under `slices/` with a `nuxt.config.ts` -- it gets picked up automatically.
@@ -170,9 +170,9 @@ Each setup slice provides a piece of core infrastructure:
 | `pinia` | State management | -- | `nuxt.config.ts` |
 | `di` | Dependency injection (InversifyJS) | `#di` | `container.ts`, `types.ts` |
 | `i18n` | Internationalization | `#i18n` | `nuxt.config.ts`, `i18n.config.ts` |
-| `theme` | UI components (shadcn-vue) | `#theme` | `components/ui/`, `tailwind.config.js` |
+| `theme` | UI components (shadcn-vue, Tailwind v4) | `#theme` | `components/ui/`, `assets/css/tailwind.css`, `assets/themes/` |
 | `error` | Global error handling | `#error` | `utils/handleError.ts`, `stores/error.ts` |
-| `api` | Backend API SDK (hey-api) | `#api` | `api.config.ts`, `data/repositories/api/` |
+| `api` | Backend API SDK (hey-api) | `#api` | `plugins/api.ts`, `data/repositories/api/` |
 
 ## Post-Installation Cleanup
 
@@ -194,16 +194,18 @@ WORKDIR /usr/src/app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY . .
-ARG API_URL
-RUN API_URL=${API_URL} bun run build
+RUN bun run build
+ENV NUXT_PUBLIC_API_URL=/api
 EXPOSE 3000
 CMD ["bun", "run", "start"]
 ```
 
 ```bash
-docker build --build-arg API_URL=https://api.example.com -t app .
-docker run -p 3000:3000 app
+docker build -t app .
+docker run -p 3000:3000 -e NUXT_PUBLIC_API_URL=https://api.example.com app
 ```
+
+The API origin is runtime configuration, so one image serves every environment. The starter kit defaults to `/api` and lets the reverse proxy route it to the backend.
 
 ## Quick Reference
 
@@ -213,7 +215,7 @@ docker run -p 3000:3000 app
 | Add a state store | `slices/{feature}/stores/{name}.ts` |
 | Add translations | `slices/{feature}/locales/{lang}.json` + nuxt.config.ts |
 | Add a UI component | Use from `#theme/components/ui/` |
-| Configure API base URL | `slices/setup/api/api.config.ts` |
+| Configure API base URL | `runtimeConfig.public.apiUrl` in `nuxt.config.ts`, `NUXT_PUBLIC_API_URL` at runtime |
 | Handle API errors | `slices/setup/error/utils/handleError.ts` |
 
 ## What's Next?

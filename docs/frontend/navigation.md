@@ -10,6 +10,10 @@ The navigation system has three parts:
 2. **Menu Components** (`common/components/menu/`) -- Render the sidebar and top nav
 3. **Slice Plugins** (`{slice}/plugins/menu.ts`) -- Each slice registers its items
 
+::: info
+The starter kit ships without a menu system. This page is the recommended shape when a project adds one; `common/` is the slice that owns the store and the rendering components.
+:::
+
 ```
 slices/
 ├── common/

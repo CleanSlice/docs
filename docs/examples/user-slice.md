@@ -15,7 +15,7 @@ Add the User model to your Prisma schema:
 ```prisma
 // api/prisma/schema.prisma
 model User {
-  id        String   @id @default(uuid())
+  id        String   @id        // minted by the gateway: formatId(USER_ID_PREFIX)
   email     String   @unique
   name      String
   status    String   @default("active")
@@ -39,6 +39,9 @@ Create the domain folder and define your types and gateway contract.
 
 ```typescript
 // api/src/slices/user/domain/user.types.ts
+/** Primary ID prefix of the User entity; see /standards/identifiers */
+export const USER_ID_PREFIX = 'user';
+
 export enum UserStatusTypes {
   Active = 'active',
   Inactive = 'inactive',
@@ -94,7 +97,7 @@ export abstract class IUserGateway {
 // api/src/slices/user/domain/index.ts
 export { IUserGateway } from './user.gateway';
 export type { IUserData, ICreateUserData, IUpdateUserData, IUserFilter } from './user.types';
-export { UserStatusTypes } from './user.types';
+export { UserStatusTypes, USER_ID_PREFIX } from './user.types';
 ```
 
 ## Step 3: Backend — Data Layer
@@ -120,6 +123,7 @@ export class UserMapper {
     };
   }
 
+  /** Everything but the id: the gateway mints that with formatId(USER_ID_PREFIX). */
   toCreate(data: ICreateUserData): { email: string; name: string } {
     return {
       email: data.email.toLowerCase().trim(),
@@ -144,8 +148,9 @@ export class UserMapper {
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '#prisma';
+import { formatId, withIdRetry } from '#setup/id';
 import { IUserGateway } from '../domain/user.gateway';
-import { IUserData, ICreateUserData, IUpdateUserData, IUserFilter } from '../domain';
+import { IUserData, ICreateUserData, IUpdateUserData, IUserFilter, USER_ID_PREFIX } from '../domain';
 import { UserMapper } from './user.mapper';
 
 @Injectable()
@@ -174,7 +179,7 @@ export class UserGateway extends IUserGateway {
       where,
       skip: filter?.page && filter?.perPage ? (filter.page - 1) * filter.perPage : undefined,
       take: filter?.perPage,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], // tie-break on the primary key
     });
 
     return users.map((u) => this.mapper.toDomain(u));
@@ -186,9 +191,12 @@ export class UserGateway extends IUserGateway {
   }
 
   async create(data: ICreateUserData): Promise<IUserData> {
-    const user = await this.prisma.user.create({
-      data: this.mapper.toCreate(data),
-    });
+    // Mint inside the write; a primary-key collision repeats the whole write.
+    const user = await withIdRetry(() =>
+      this.prisma.user.create({
+        data: { id: formatId(USER_ID_PREFIX), ...this.mapper.toCreate(data) },
+      }),
+    );
     return this.mapper.toDomain(user);
   }
 
@@ -253,10 +261,11 @@ export class UpdateUserDto {
 ```typescript
 // api/src/slices/user/dtos/user.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IUserData, UserStatusTypes } from '../domain';
+import { idPattern } from '#setup/id';
+import { IUserData, UserStatusTypes, USER_ID_PREFIX } from '../domain';
 
 export class UserDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'user-calm-rivers-k8m4p2d7n9x3', pattern: idPattern(USER_ID_PREFIX) })
   id: string;
 
   @ApiProperty()
@@ -294,7 +303,8 @@ export { UserDto } from './user.dto';
 // api/src/slices/user/user.controller.ts
 import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { IUserGateway } from './domain';
+import { EntityIdPipe } from '#setup/id';
+import { IUserGateway, USER_ID_PREFIX } from './domain';
 import { CreateUserDto, UpdateUserDto, UserDto } from './dtos';
 
 @ApiTags('users')
@@ -311,7 +321,7 @@ export class UserController {
 
   @ApiOperation({ operationId: 'getUser', summary: 'Get user by ID' })
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<UserDto> {
+  async findOne(@Param('id', new EntityIdPipe(USER_ID_PREFIX)) id: string): Promise<UserDto> {
     const user = await this.gateway.findById(id);
     if (!user) throw new Error('User not found');
     return new UserDto(user);
@@ -326,14 +336,17 @@ export class UserController {
 
   @ApiOperation({ operationId: 'updateUser', summary: 'Update a user' })
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateUserDto): Promise<UserDto> {
+  async update(
+    @Param('id', new EntityIdPipe(USER_ID_PREFIX)) id: string,
+    @Body() dto: UpdateUserDto,
+  ): Promise<UserDto> {
     const user = await this.gateway.update(id, dto);
     return new UserDto(user);
   }
 
   @ApiOperation({ operationId: 'deleteUser', summary: 'Delete a user' })
   @Delete(':id')
-  async remove(@Param('id') id: string): Promise<void> {
+  async remove(@Param('id', new EntityIdPipe(USER_ID_PREFIX)) id: string): Promise<void> {
     await this.gateway.delete(id);
   }
 }

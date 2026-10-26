@@ -344,9 +344,9 @@ All errors produce the same JSON structure:
 {
   "code": "USER_NOT_FOUND",
   "statusCode": 404,
-  "message": "User with ID 'usr_123' was not found.",
+  "message": "User with ID 'user-calm-rivers-k8m4p2d7n9x3' was not found.",
   "timestamp": "2025-01-15T10:30:00.000Z",
-  "path": "/users/usr_123"
+  "path": "/users/user-calm-rivers-k8m4p2d7n9x3"
 }
 ```
 
