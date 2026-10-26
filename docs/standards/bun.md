@@ -19,11 +19,11 @@ Two package managers in a repo means two lockfiles that disagree and a CI that i
 
 ## What does not change
 
-**Pre-scripts still run.** `bun run dev` runs `predev` first, `bun run migrate` runs `premigrate`. The CleanSlice flow leans on this — `predev` is where docker, prisma-import, migrations and the [boundary check](/standards/boundary-check) live.
+**Pre-scripts still run.** `bun run dev` runs `predev` first, and `bun install` runs `postinstall`. The CleanSlice flow leans on this — `predev` is where docker, the migrations (`db:deploy`) and the [boundary check](/standards/boundary-check) live, and `postinstall` emits the Prisma contract.
 
 **The scripts themselves.** `nest build`, `nuxt dev`, `jest`, `eslint` — same binaries, same flags.
 
-**Node still serves production.** Bun installs and builds; the api's runtime image runs the compiled output on Node. That is why a runtime image without Bun calls a local binary directly — `node_modules/.bin/prisma migrate deploy` — instead of `bunx`.
+**Node still serves production.** Bun installs and builds; the api's runtime image runs the compiled output on Node. That is why a runtime image without Bun runs its migrations with Node directly — `node scripts/migrate.mjs`, which calls `node_modules/prisma/dist/prisma.js` — instead of `bunx`.
 
 
 ## Docker: Bun installs, Node builds

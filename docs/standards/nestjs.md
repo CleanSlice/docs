@@ -115,9 +115,13 @@ export class UserGateway extends IUserGateway {
     private readonly mapper: UserMapper,
   ) { super(); }
 
+  private get users() {
+    return this.prisma.db.public.User;
+  }
+
   async findById(id: string): Promise<IUserData | null> {
-    const user = await this.prisma.user.findUnique({ where: { id } });
-    return user ? this.mapper.toDomain(user) : null;
+    const user = await this.users.first({ id });
+    return user ? this.mapper.toData(user) : null;
   }
   // ...
 }

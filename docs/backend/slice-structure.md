@@ -142,32 +142,36 @@ Implements the abstract gateway using Prisma:
 
 ```typescript
 @Injectable()
-export class UserGateway implements IUserGateway {
+export class UserGateway extends IUserGateway {
   constructor(
-    private prisma: PrismaService,
-    private map: UserMapper,
-  ) {}
+    private readonly prisma: PrismaService,
+    private readonly map: UserMapper,
+  ) {
+    super();
+  }
 
-  async getUser(id: string): Promise<IUserData> {
-    const result = await this.prisma.user.findUnique({ where: { id } });
-    return this.map.toData(result);
+  async getUser(id: string): Promise<IUserData | null> {
+    const result = await this.prisma.db.public.User.first({ id });
+    return result ? this.map.toData(result) : null;
   }
 }
 ```
 
 ### Mapper (`data/user.mapper.ts`)
 
-Transforms data between Prisma types and domain types:
+Transforms Prisma rows into domain types:
 
 ```typescript
+import type { PrismaRow } from '#setup/prisma';
+
 @Injectable()
 export class UserMapper {
-  toData(data: User): IUserData {
+  toData(data: PrismaRow<'User'>): IUserData {
     return {
       id: data.id,
       name: data.name,
       email: data.email,
-      roles: data.roles as RoleTypes[],
+      roles: [...data.roles] as RoleTypes[],
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     };

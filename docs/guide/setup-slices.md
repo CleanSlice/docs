@@ -196,16 +196,18 @@ Located at `api/src/slices/`.
 
 ### Prisma
 
-**Purpose:** Database ORM and connection management. See [Database](/backend/database) for detailed setup.
+**Purpose:** Database ORM (Prisma 8) and connection management. See [Database](/backend/database) for detailed setup.
 
 ```
-api/src/slices/prisma/
-├── prisma.module.ts
-├── prisma.service.ts
+api/src/slices/setup/prisma/
+├── prisma.module.ts      # @Global()
+├── prisma.service.ts     # db.public.<Model>, transaction(), raw SQL
+├── prisma.types.ts       # PrismaRow / PrismaCreate / PrismaUpdate
+├── prisma.errors.ts      # isUniqueViolation, sqlState, …
 └── index.ts
 ```
 
-The `PrismaModule` is registered globally — all feature slices can inject `PrismaService` without importing the module.
+The `PrismaModule` is registered globally — all feature slices can inject `PrismaService` without importing the module. It has no `.prisma` file of its own: there is no datasource or generator block in Prisma 8.
 
 ### Core
 

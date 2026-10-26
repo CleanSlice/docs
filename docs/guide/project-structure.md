@@ -12,7 +12,8 @@ my-project/
 │   │   ├── app.module.ts         # Root module
 │   │   └── main.ts               # Entry point
 │   ├── prisma/
-│   │   └── schema.prisma         # Database schema
+│   │   └── migrations/           # Prisma 8 migration plans
+│   ├── prisma.config.ts          # Globs the slices' *.prisma files
 │   ├── tsconfig.json
 │   └── package.json
 │

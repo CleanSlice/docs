@@ -4,7 +4,7 @@ Mappers transform data between layers. They convert Prisma database models into 
 
 ## Why Mappers Exist
 
-Prisma generates its own types based on your database schema. Your domain layer defines its own types based on business needs. These two sets of types are similar but rarely identical -- Prisma types include database-specific details, your domain types use typed enums, and some fields need reshaping.
+Prisma's row types come from the database contract (`PrismaRow<'User'>` and friends, derived from the emitted contract in `#setup/prisma`). Your domain layer defines its own types based on business needs. These two sets of types are similar but rarely identical -- rows carry database details (`readonly` lists, plain strings where the domain has enums), and some fields need reshaping.
 
 Mappers keep this translation logic in one place instead of scattering it across gateways and services.
 
@@ -27,28 +27,22 @@ Every mapper has up to three methods:
 
 | Method | Input | Output | Purpose |
 |---|---|---|---|
-| `toData()` | Prisma model | Domain type | Database response to domain |
-| `toCreate()` | Create input | Prisma create input | Prepare data for insert |
-| `toUpdate()` | Update input | Prisma update input | Prepare data for update |
+| `toData()` | `PrismaRow<'User'>` | Domain type | Database row to domain |
+| `toCreate()` | Create input | `Omit<PrismaCreate<'User'>, 'id'>` | Prepare data for insert |
+| `toUpdate()` | Update input | `PrismaUpdate<'User'>` | Prepare data for update |
 
 ## Complete Example
 
 ```typescript [data/user.mapper.ts]
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import DB, { Prisma } from '@prisma/client';
+import type { PrismaCreate, PrismaRow, PrismaUpdate } from '#setup/prisma';
 import { IUserData, ICreateUserData, IUpdateUserData, RoleTypes } from '../domain';
 
-// Type aliases for Prisma types
-export type IUserResponse = DB.User;
-export type IUserCreateRequest = Prisma.XOR<
-  Prisma.UserCreateInput,
-  Prisma.UserUncheckedCreateInput
->;
-export type IUserUpdateRequest = Prisma.XOR<
-  Prisma.UserUpdateInput,
-  Prisma.UserUncheckedUpdateInput
->;
+// The row and write shapes, derived from the Prisma contract
+export type IUserResponse = PrismaRow<'User'>;
+export type IUserCreateRequest = PrismaCreate<'User'>;
+export type IUserUpdateRequest = PrismaUpdate<'User'>;
 
 @Injectable()
 export class UserMapper {
@@ -59,7 +53,7 @@ export class UserMapper {
       id: data.id,
       name: data.name,
       email: data.email,
-      roles: data.roles as RoleTypes[],
+      roles: [...data.roles] as RoleTypes[],
       verified: data.verified,
       banned: data.banned,
       createdAt: data.createdAt,
@@ -72,17 +66,19 @@ export class UserMapper {
     return {
       name: data.name,
       email: data.email,
-      roles: data.roles,
+      password: data.password,
+      roles: data.roles ?? [],
       verified: this.configService.get('IS_USER_VERIFIED') === 'true',
     };
   }
 
+  /** Only the fields that were given: an absent field is left as it is. */
   toUpdate(data: IUpdateUserData): IUserUpdateRequest {
     return {
-      name: data.name,
-      roles: data.roles,
-      verified: data.verified,
-      banned: data.banned,
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.roles !== undefined && { roles: data.roles }),
+      ...(data.verified !== undefined && { verified: data.verified }),
+      ...(data.banned !== undefined && { banned: data.banned }),
     };
   }
 }
@@ -96,13 +92,13 @@ Mapper methods are pure transformations. They receive data in, return data out, 
 
 ```typescript
 // Correct -- synchronous transformation
-toData(user: PrismaUser): IUserData {
+toData(user: PrismaRow<'User'>): IUserData {
   return { id: user.id, name: user.name };
 }
 
 // Wrong -- async and fetching data
 async toData(userId: string): Promise<IUserData> {
-  const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  const user = await this.prisma.db.public.User.first({ id: userId });
   return { id: user.id, name: user.name };
 }
 ```
@@ -113,13 +109,13 @@ If a transformation needs related data, pass it as a parameter from the gateway:
 
 ```typescript
 // Wrong -- mapper fetches related data
-toData(user: PrismaUser): IUserData {
-  const roles = await this.prisma.role.findMany({ where: { userId: user.id } });
+toData(user: PrismaRow<'User'>): IUserData {
+  const roles = await this.prisma.db.public.Role.where({ userId: user.id }).all();
   return { ...user, roles };
 }
 
 // Correct -- related data passed in
-toData(user: PrismaUser, roles: PrismaRole[]): IUserData {
+toData(user: PrismaRow<'User'>, roles: PrismaRow<'Role'>[]): IUserData {
   return { ...user, roles: roles.map(r => r.name) };
 }
 ```
@@ -130,7 +126,7 @@ Validation, error throwing, and business rules belong in the [Service](/backend/
 
 ```typescript
 // Wrong -- business logic in mapper
-toData(user: PrismaUser): IUserData {
+toData(user: PrismaRow<'User'>): IUserData {
   if (user.status === 'banned') {
     throw new UserBannedError(user.id);
   }
@@ -138,7 +134,7 @@ toData(user: PrismaUser): IUserData {
 }
 
 // Correct -- pure transformation
-toData(user: PrismaUser): IUserData {
+toData(user: PrismaRow<'User'>): IUserData {
   return {
     id: user.id,
     name: user.name,
@@ -151,12 +147,10 @@ toData(user: PrismaUser): IUserData {
 
 ### Relations
 
-When your gateway uses Prisma's `include`, define a type for the enriched result and create a dedicated mapper method:
+When your gateway uses `.include('posts')`, type the enriched row as the row plus its relation and create a dedicated mapper method:
 
 ```typescript
-type UserWithPosts = Prisma.UserGetPayload<{
-  include: { posts: true };
-}>;
+type UserWithPosts = PrismaRow<'User'> & { posts: PrismaRow<'Post'>[] };
 
 toDataWithPosts(user: UserWithPosts): IUserWithPosts {
   return {
@@ -172,15 +166,15 @@ toDataWithPosts(user: UserWithPosts): IUserWithPosts {
 
 ### Enum Casting
 
-Prisma stores enums as strings. Cast them to your domain enum types in the mapper:
+Enum-like columns are plain `String` columns. Cast them to your domain enum types in the mapper:
 
 ```typescript
-toData(user: PrismaUser): IUserData {
+toData(user: PrismaRow<'User'>): IUserData {
   return {
     id: user.id,
     status: user.status as UserStatusTypes,
     role: user.role as UserRoleTypes,
-    permissions: user.permissions as PermissionTypes[],
+    permissions: [...user.permissions] as PermissionTypes[],
   };
 }
 ```
@@ -188,7 +182,7 @@ toData(user: PrismaUser): IUserData {
 ### JSON Fields
 
 ```typescript
-toData(user: PrismaUser): IUserData {
+toData(user: PrismaRow<'User'>): IUserData {
   return {
     id: user.id,
     settings: user.settings as IUserSettings,
@@ -196,10 +190,10 @@ toData(user: PrismaUser): IUserData {
   };
 }
 
-toCreate(data: ICreateUserData): Prisma.UserCreateInput {
+toCreate(data: ICreateUserData): Omit<PrismaCreate<'User'>, 'id'> {
   return {
     name: data.name,
-    settings: data.settings as Prisma.JsonObject,
+    settings: data.settings as JsonObject, // JsonObject from '#setup/prisma'; the column is Jsonb
   };
 }
 ```
@@ -209,10 +203,10 @@ toCreate(data: ICreateUserData): Prisma.UserCreateInput {
 Mappers do **not** generate IDs. The gateway mints the primary key inside the write with `formatId(prefix)` and repeats the write on a collision with `withIdRetry`:
 
 ```typescript [data/user.gateway.ts]
-const user = await withIdRetry(() =>
-  this.prisma.user.create({
-    data: { id: formatId(USER_ID_PREFIX), ...this.mapper.toCreate(data) },
-  }),
+const createData = this.mapper.toCreate(data);
+const user = await withIdRetry(
+  () => this.prisma.db.public.User.create({ id: formatId(USER_ID_PREFIX), ...createData }),
+  this.prisma.inTransaction,
 );
 ```
 
@@ -224,13 +218,13 @@ When an entity includes related data from another slice, inject that slice's map
 
 ```typescript [data/apiKey.mapper.ts]
 import { Injectable } from '@nestjs/common';
-import DB, { Prisma } from '@prisma/client';
+import type { PrismaCreate, PrismaRow } from '#setup/prisma';
 import { IApiKeyData, ICreateApiKeyData } from '../domain';
 import { randomBytes } from 'node:crypto';
 import { TeamMapper } from '#/user/team/data/team.mapper';
 
-export type IApiKeyResponse = DB.ApiKey & {
-  team: DB.Team;
+export type IApiKeyResponse = PrismaRow<'ApiKey'> & {
+  team: PrismaRow<'Team'>;
 };
 
 @Injectable()
@@ -250,7 +244,7 @@ export class ApiKeyMapper {
   }
 
   /** The id is minted by the gateway (formatId(API_KEY_ID_PREFIX)); the secret is not an id. */
-  toCreate(data: ICreateApiKeyData): Omit<Prisma.ApiKeyUncheckedCreateInput, 'id'> {
+  toCreate(data: ICreateApiKeyData): Omit<PrismaCreate<'ApiKey'>, 'id'> {
     return {
       teamId: data.teamId,
       name: data.name,
@@ -260,14 +254,11 @@ export class ApiKeyMapper {
 }
 ```
 
-The gateway must use `include` to load the relation:
+The gateway must use `.include(...)` to load the relation:
 
 ```typescript
 async getApiKey(id: string): Promise<IApiKeyData | null> {
-  const result = await this.prisma.apiKey.findUnique({
-    where: { id },
-    include: { team: true },
-  });
+  const result = await this.prisma.db.public.ApiKey.include('team').first({ id });
   return result ? this.mapper.toData(result) : null;
 }
 ```
@@ -276,40 +267,47 @@ async getApiKey(id: string): Promise<IApiKeyData | null> {
 
 ```typescript [data/user.gateway.ts]
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '#/setup/prisma';
-import { formatId, withIdRetry } from '#/setup/id';
+import { PrismaService } from '#setup/prisma';
+import { formatId, withIdRetry } from '#setup/id';
 import { IUserGateway } from '../domain/user.gateway';
 import { IUserData, ICreateUserData, IUpdateUserData, USER_ID_PREFIX } from '../domain/user.types';
+import { UserNotFoundError } from '../domain/user.errors';
 import { UserMapper } from './user.mapper';
 
 @Injectable()
 export class UserGateway extends IUserGateway {
   constructor(
-    private prisma: PrismaService,
-    private mapper: UserMapper,
+    private readonly prisma: PrismaService,
+    private readonly mapper: UserMapper,
   ) {
     super();
   }
 
+  private get users() {
+    return this.prisma.db.public.User;
+  }
+
   async getUser(id: string): Promise<IUserData | null> {
-    const result = await this.prisma.user.findUnique({ where: { id } });
+    const result = await this.users.first({ id });
     return result ? this.mapper.toData(result) : null;
   }
 
   async createUser(data: ICreateUserData): Promise<IUserData> {
-    const result = await withIdRetry(() =>
-      this.prisma.user.create({
-        data: { id: formatId(USER_ID_PREFIX), ...this.mapper.toCreate(data) },
-      }),
+    const createData = this.mapper.toCreate(data);
+    const result = await withIdRetry(
+      () => this.users.create({ id: formatId(USER_ID_PREFIX), ...createData }),
+      this.prisma.inTransaction,
     );
     return this.mapper.toData(result);
   }
 
   async updateUser(id: string, data: IUpdateUserData): Promise<IUserData> {
-    const result = await this.prisma.user.update({
-      where: { id },
-      data: this.mapper.toUpdate(data),
-    });
+    const changes = this.mapper.toUpdate(data);
+    const result =
+      Object.keys(changes).length === 0
+        ? await this.users.first({ id })
+        : await this.users.where({ id }).update(changes);
+    if (!result) throw new UserNotFoundError(id); // update answers null for a missing row
     return this.mapper.toData(result);
   }
 }
